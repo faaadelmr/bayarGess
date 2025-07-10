@@ -8,7 +8,7 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <Logo />
           <h1 className="text-2xl font-bold tracking-tight text-foreground font-headline">
-            BillSplit Buddy
+            bayarGess
           </h1>
         </div>
       </header>
@@ -17,7 +17,8 @@ export default function Home() {
       </main>
       <footer className="flex items-center justify-center p-4 border-t">
         <p className="text-sm text-muted-foreground">
-          Fairly splitting bills with the power of AI
+          Create with ❤️ by  
+          <a href="https://github.com/faaadelmr"> faaadelmr</a>
         </p>
       </footer>
     </div>

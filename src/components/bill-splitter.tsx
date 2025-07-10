@@ -303,7 +303,7 @@ export default function BillSplitter() {
           </CardContent>
           <CardFooter className="flex gap-2">
             <Input
-              placeholder="Nama orang baru"
+              placeholder="Tambahkan nama teman"
               value={newPersonName}
               onChange={(e) => setNewPersonName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddPerson()}
@@ -426,7 +426,7 @@ export default function BillSplitter() {
             <Card>
                 <CardHeader>
                     <CardTitle>Ringkasan</CardTitle>
-                    <CardDescription>Rincian akhir tentang siapa berutang apa.</CardDescription>
+                    <CardDescription>Rincian akhir dari pembagian tagihan.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex justify-between">
@@ -456,7 +456,7 @@ export default function BillSplitter() {
                         </Tabs>
                         <Input
                             type="number"
-                            placeholder="Contoh: 10000 atau 10"
+                            placeholder="Contoh: 10000 atau 25000"
                             value={discountValue || ""}
                             onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
                             min="0"
@@ -509,6 +509,10 @@ export default function BillSplitter() {
                         <span className="text-muted-foreground">Diskon</span>
                         <span>- {totals.discountAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
                     </div>
+                    <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Biaya lain-lain</span>
+                        <span>{(Number(additionalCharges) + Number(shippingCost)).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                    </div>
 
                     <Separator />
                     <div className="flex justify-between font-bold text-lg">
@@ -528,7 +532,6 @@ export default function BillSplitter() {
                 </CardContent>
                 <CardFooter className="flex-col gap-2">
                     <Button onClick={() => setShowSummaryModal(true)} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                        <Sparkles className="mr-2 h-4 w-4" />
                         Lihat Ringkasan Pembagian
                     </Button>
                 </CardFooter>
