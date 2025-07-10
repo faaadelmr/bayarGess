@@ -337,6 +337,8 @@ export default function BillSplitter() {
                     </CardTitle>
                     <CardDescription>
                         Unggah struk atau tambahkan item secara manual.
+                        <br></br>
+                        <span className="text-xs	text-gray-400/70">NP:pastikan tidak ada tanda (,) koma pada penulisan harga</span>
                     </CardDescription>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
@@ -377,21 +379,25 @@ export default function BillSplitter() {
                             }
                             className="flex-grow"
                         />
+                       <div className="relative w-full sm:w-28">
+ <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">Rp</span>
                         <Input
-                            type="number"
+                            type="text" // Changed to text for formatting
                             placeholder="Harga"
-                            value={item.price || ""}
+                            value={(item.price || 0).toLocaleString('id-ID')} // Formatted for display
                             onChange={(e) =>
                             handleUpdateItem(
                                 item.id,
                                 "price",
-                                parseFloat(e.target.value) || 0
+                                    parseFloat(e.target.value.replace(/\D/g, '')) || 0 // Parse numeric part
                             )
                             }
-                            className="w-full sm:w-28"
+                            className="w-full sm:w-28 pl-8"
                             min="0"
                             step="0.01"
                         />
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">Rp</span>
+                        </div>
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button variant="outline" className="w-full sm:w-auto justify-start text-left font-normal">
@@ -450,39 +456,42 @@ export default function BillSplitter() {
                     <div className="space-y-2">
                         <Label htmlFor="tax">Pajak (%)</Label>
                         <Input
+                            className="pr-8" // Add padding to the right for the percentage sign
                             id="tax"
                             type="number"
-                            placeholder="10"
+                            placeholder="Contoh : 11%"
                             value={taxPercent || ""}
                             onChange={(e) => setTaxPercent(parseFloat(e.target.value) || 0)}
                             min="0"
                         />
+                        {/* Add the percentage sign visually */}
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
                     </div>
 
                     <div className="space-y-2">
                         <Label>Diskon</Label>
                         <Tabs value={discountType} onValueChange={(value) => setDiscountType(value as DiscountType)} className="w-full">
                             <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="fixed">Tetap (IDR)</TabsTrigger>
+                                <TabsTrigger value="fixed">Total Diskon (IDR)</TabsTrigger>
                                 <TabsTrigger value="percentage">Persen (%)</TabsTrigger>
                             </TabsList>
                         </Tabs>
                         <Input
-                            type="number"
-                            placeholder="Contoh: 10000 atau 25000"
-                            value={discountValue || ""}
-                            onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
+                            type="text"
+                            placeholder="Contoh: 10.000 atau 25%"
+                            value={discountValue.toLocaleString('id-ID')}
+                            onChange={(e) => setDiscountValue(parseFloat(e.target.value.replace(/\D/g, '')) || 0)}
                             min="0"
                         />
                         {discountType === 'percentage' && (
                             <div className="space-y-2">
-                                <Label htmlFor="max-discount">Maksimal Diskon (IDR)</Label>
+                                <Label htmlFor="max-discount">Maksimal Diskon (Rp)</Label>
                                 <Input
                                     id="max-discount"
-                                    type="number"
-                                    placeholder="Contoh: 50000"
-                                    value={maxDiscount || ""}
-                                    onChange={(e) => setMaxDiscount(parseFloat(e.target.value) || 0)}
+                                    type="text"
+                                    placeholder="Contoh: 25.000"
+                                    value={maxDiscount.toLocaleString('id-ID')}
+                                    onChange={(e) => setMaxDiscount(parseFloat(e.target.value.replace(/\D/g, '')) || 0)}
                                     min="0"
                                 />
                             </div>
@@ -493,10 +502,10 @@ export default function BillSplitter() {
                         <Label htmlFor="additional-charges">Biaya Tambahan</Label>
                         <Input
                             id="additional-charges"
-                            type="number"
+                            type="text" // Changed to text
                             placeholder="0"
-                            value={additionalCharges || ""}
-                            onChange={(e) => setAdditionalCharges(parseFloat(e.target.value) || 0)}
+                            value={additionalCharges.toLocaleString('id-ID')} // Formatted for display
+                            onChange={(e) => setAdditionalCharges(parseFloat(e.target.value.replace(/\D/g, '')) || 0)} // Parse numeric part
                              min="0"
                         />
                     </div>
@@ -504,10 +513,10 @@ export default function BillSplitter() {
                         <Label htmlFor="shipping-cost">Ongkos Kirim</Label>
                         <Input
                             id="shipping-cost"
-                            type="number"
+                            type="text"
                             placeholder="0"
-                            value={shippingCost || ""}
-                            onChange={(e) => setShippingCost(parseFloat(e.target.value) || 0)}
+                            value={shippingCost.toLocaleString('id-ID')}
+                            onChange={(e) => setShippingCost(parseFloat(e.target.value.replace(/\D/g, '')) || 0)}
                             min="0"
                         />
                     </div>
