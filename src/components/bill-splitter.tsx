@@ -575,12 +575,12 @@ export default function BillSplitter() {
                     </div>
                  </div>
                  <Separator className="bg-gray-300"/>
-                 <div className="text-xs text-gray-500 pt-2">
-                    <p>Subtotal: {totals.subtotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</p>
-                    <p>Pajak ({taxPercent}%): {totals.taxAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</p>
-                    {discountValue > 0 && <p>Diskon: -{totals.discountAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</p>}
-                    {additionalCharges > 0 && <p>Biaya Tambahan: {Number(additionalCharges).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</p>}
-                    {shippingCost > 0 && <p>Ongkos Kirim: {Number(shippingCost).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</p>}
+                 <div className="text-xs text-gray-500 pt-2 space-y-1">
+                    <div className="flex justify-between"><span>Subtotal:</span> <span>{totals.subtotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>
+                    <div className="flex justify-between"><span>Pajak ({taxPercent}%):</span> <span>{totals.taxAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>
+                    {discountValue > 0 && <div className="flex justify-between"><span>Diskon:</span> <span>-{totals.discountAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>}
+                    {additionalCharges > 0 && <div className="flex justify-between"><span>Biaya Tambahan:</span> <span>{Number(additionalCharges).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>}
+                    {shippingCost > 0 && <div className="flex justify-between"><span>Ongkos Kirim:</span> <span>{Number(shippingCost).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>}
                  </div>
             </div>
           </div>
