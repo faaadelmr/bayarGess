@@ -248,6 +248,24 @@ export default function BillSplitter() {
 
     return { subtotal, grandTotal, individualTotals, taxAmount, discountAmount };
   }, [items, people, taxPercent, additionalCharges, shippingCost, discountType, discountValue, maxDiscount]);
+  
+  const personItems = useMemo(() => {
+    const personItemsMap: Record<Person, {name: string, price: number}[]> = {};
+    people.forEach(person => {
+      personItemsMap[person] = [];
+      items.forEach(item => {
+        const consumers = item.consumers.length > 0 ? item.consumers : people;
+        if (consumers.includes(person)) {
+          personItemsMap[person].push({
+            name: item.name,
+            price: (Number(item.price) || 0) / consumers.length,
+          });
+        }
+      });
+    });
+    return personItemsMap;
+  }, [items, people]);
+
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -536,13 +554,24 @@ export default function BillSplitter() {
                  <Separator className="bg-gray-300"/>
                  <div>
                     <h4 className="font-semibold mb-2 text-center">Pembagian per Orang</h4>
-                    <div className="space-y-2">
-                        {people.map((person) => (
-                        <div key={person} className="flex justify-between p-2 rounded-md bg-gray-100">
-                            <span className="font-medium">{person}</span>
-                            <span className="font-bold">{totals.individualTotals[person]?.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                    <div className="space-y-4">
+                      {people.map((person) => (
+                        <div key={person} className="p-2 rounded-md bg-gray-100">
+                          <div className="flex justify-between font-bold">
+                            <span>{person}</span>
+                            <span>{totals.individualTotals[person]?.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                          </div>
+                          <Separator className="my-2 bg-gray-200" />
+                          <div className="space-y-1 text-sm">
+                            {personItems[person].map((item, index) => (
+                              <div key={index} className="flex justify-between">
+                                <span className="text-gray-600">{item.name}</span>
+                                <span className="text-gray-800">{item.price.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        ))}
+                      ))}
                     </div>
                  </div>
                  <Separator className="bg-gray-300"/>
