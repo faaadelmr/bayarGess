@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, type ChangeEvent } from "react";
@@ -42,6 +43,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { analyzeReceiptImage, type AnalyzeReceiptImageOutput } from "@/ai/flows/analyze-receipt-image";
 import { suggestEquitableSplits, type SuggestEquitableSplitsInput, type SuggestEquitableSplitsOutput } from "@/ai/flows/suggest-equitable-splits";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 type Item = {
@@ -52,15 +54,20 @@ type Item = {
 };
 
 type Person = string;
+type DiscountType = 'fixed' | 'percentage';
 
 export default function BillSplitter() {
   const [people, setPeople] = useState<Person[]>(["Anda"]);
   const [items, setItems] = useState<Item[]>([]);
-  const [tax, setTax] = useState(0);
+  const [taxPercent, setTaxPercent] = useState(0);
   const [additionalCharges, setAdditionalCharges] = useState(0);
   const [shippingCost, setShippingCost] = useState(0);
   const [newPersonName, setNewPersonName] = useState("");
   const { toast } = useToast();
+
+  const [discountType, setDiscountType] = useState<DiscountType>('fixed');
+  const [discountValue, setDiscountValue] = useState(0);
+  const [maxDiscount, setMaxDiscount] = useState(0);
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
@@ -210,8 +217,22 @@ export default function BillSplitter() {
 
   const totals = useMemo(() => {
     const subtotal = items.reduce((acc, item) => acc + Number(item.price || 0), 0);
-    const otherCosts = (Number(tax) || 0) + (Number(additionalCharges) || 0) + (Number(shippingCost) || 0);
-    const grandTotal = subtotal + otherCosts;
+    
+    const taxAmount = (subtotal * (Number(taxPercent) || 0)) / 100;
+
+    let discountAmount = 0;
+    if (discountType === 'fixed') {
+        discountAmount = Number(discountValue) || 0;
+    } else { // percentage
+        const calculatedDiscount = subtotal * (Number(discountValue) || 0) / 100;
+        const max = Number(maxDiscount) || 0;
+        discountAmount = max > 0 ? Math.min(calculatedDiscount, max) : calculatedDiscount;
+    }
+
+    const subtotalAfterDiscount = subtotal - discountAmount;
+    
+    const otherCosts = taxAmount + (Number(additionalCharges) || 0) + (Number(shippingCost) || 0);
+    const grandTotal = subtotalAfterDiscount + otherCosts;
 
     const individualTotals: Record<Person, number> = {};
     people.forEach((person) => (individualTotals[person] = 0));
@@ -229,12 +250,13 @@ export default function BillSplitter() {
 
     people.forEach((person) => {
         const personSubtotal = individualTotals[person];
-        const personShareOfOtherCosts = subtotal > 0 ? (personSubtotal / subtotal) * otherCosts : (otherCosts / people.length);
-        individualTotals[person] += personShareOfOtherCosts;
+        // Distribute discount and other costs proportionally to each person's subtotal
+        const personShareOfPostSubtotalCosts = subtotal > 0 ? (personSubtotal / subtotal) * (otherCosts - discountAmount) : (otherCosts - discountAmount) / people.length;
+        individualTotals[person] += personShareOfPostSubtotalCosts;
     });
 
-    return { subtotal, grandTotal, individualTotals, otherCosts };
-  }, [items, people, tax, additionalCharges, shippingCost]);
+    return { subtotal, grandTotal, individualTotals, taxAmount, discountAmount };
+  }, [items, people, taxPercent, additionalCharges, shippingCost, discountType, discountValue, maxDiscount]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -402,29 +424,58 @@ export default function BillSplitter() {
                         <span className="text-muted-foreground">Subtotal</span>
                         <span>{totals.subtotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
                     </div>
-                    
+
                     <div className="space-y-2">
-                        <Label htmlFor="tax">Pajak</Label>
+                        <Label htmlFor="tax">Pajak (%)</Label>
                         <Input
                             id="tax"
                             type="number"
-                            placeholder="0.00"
-                            value={tax || ""}
-                            onChange={(e) => setTax(parseFloat(e.target.value) || 0)}
+                            placeholder="10"
+                            value={taxPercent || ""}
+                            onChange={(e) => setTaxPercent(parseFloat(e.target.value) || 0)}
                             min="0"
-                            step="0.01"
                         />
                     </div>
+
+                    <div className="space-y-2">
+                        <Label>Diskon</Label>
+                        <Tabs value={discountType} onValueChange={(value) => setDiscountType(value as DiscountType)} className="w-full">
+                            <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="fixed">Tetap (IDR)</TabsTrigger>
+                                <TabsTrigger value="percentage">Persen (%)</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                        <Input
+                            type="number"
+                            placeholder="Contoh: 10000 atau 10"
+                            value={discountValue || ""}
+                            onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
+                            min="0"
+                        />
+                        {discountType === 'percentage' && (
+                            <div className="space-y-2">
+                                <Label htmlFor="max-discount">Maksimal Diskon (IDR)</Label>
+                                <Input
+                                    id="max-discount"
+                                    type="number"
+                                    placeholder="Contoh: 50000"
+                                    value={maxDiscount || ""}
+                                    onChange={(e) => setMaxDiscount(parseFloat(e.target.value) || 0)}
+                                    min="0"
+                                />
+                            </div>
+                        )}
+                    </div>
+                    
                      <div className="space-y-2">
                         <Label htmlFor="additional-charges">Biaya Tambahan</Label>
                         <Input
                             id="additional-charges"
                             type="number"
-                            placeholder="0.00"
+                            placeholder="0"
                             value={additionalCharges || ""}
                             onChange={(e) => setAdditionalCharges(parseFloat(e.target.value) || 0)}
                              min="0"
-                            step="0.01"
                         />
                     </div>
                      <div className="space-y-2">
@@ -432,14 +483,24 @@ export default function BillSplitter() {
                         <Input
                             id="shipping-cost"
                             type="number"
-                            placeholder="0.00"
+                            placeholder="0"
                             value={shippingCost || ""}
                             onChange={(e) => setShippingCost(parseFloat(e.target.value) || 0)}
                             min="0"
-                            step="0.01"
                         />
                     </div>
                     
+                    <Separator />
+
+                     <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Pajak</span>
+                        <span>{totals.taxAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-green-600">
+                        <span className="text-muted-foreground">Diskon</span>
+                        <span>- {totals.discountAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                    </div>
+
                     <Separator />
                     <div className="flex justify-between font-bold text-lg">
                         <span>Total</span>
@@ -494,3 +555,5 @@ export default function BillSplitter() {
     </div>
   );
 }
+
+    
