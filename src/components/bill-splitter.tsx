@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, type ChangeEvent } from "react";
+import { useState, useMemo, type ChangeEvent, useRef } from "react";
 import {
   Trash2,
   Plus,
@@ -11,6 +11,7 @@ import {
   Sparkles,
   Loader2,
   ChevronDown,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,9 +42,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { analyzeReceiptImage, type AnalyzeReceiptImageOutput } from "@/ai/flows/analyze-receipt-image";
-import { suggestEquitableSplits, type SuggestEquitableSplitsInput, type SuggestEquitableSplitsOutput } from "@/ai/flows/suggest-equitable-splits";
+import { analyzeReceiptImage } from "@/ai/flows/analyze-receipt-image";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toJpeg } from 'html-to-image';
 
 
 type Item = {
@@ -70,8 +71,9 @@ export default function BillSplitter() {
   const [maxDiscount, setMaxDiscount] = useState(0);
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isSuggesting, setIsSuggesting] = useState(false);
-  const [suggestion, setSuggestion] = useState<SuggestEquitableSplitsOutput | null>(null);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const summaryRef = useRef<HTMLDivElement>(null);
+
 
   const handleAddPerson = () => {
     if (newPersonName.trim() && !people.includes(newPersonName.trim())) {
@@ -185,35 +187,24 @@ export default function BillSplitter() {
     }
   };
 
-  const handleSuggestSplit = async () => {
-      if (items.length === 0 || people.length === 0) {
-           toast({
-                variant: "destructive",
-                title: "Data tidak cukup",
-                description: "Harap tambahkan item dan peserta sebelum menyarankan pembagian.",
-            });
-            return;
-      }
+  const handleSaveSummary = async () => {
+    if (!summaryRef.current) {
+        toast({ variant: "destructive", title: "Gagal Menyimpan", description: "Tidak dapat menemukan konten ringkasan." });
+        return;
+    }
+    try {
+        const dataUrl = await toJpeg(summaryRef.current, { quality: 0.95, backgroundColor: 'white' });
+        const link = document.createElement('a');
+        link.download = 'ringkasan-tagihan.jpeg';
+        link.href = dataUrl;
+        link.click();
+        toast({ title: "Berhasil Disimpan", description: "Ringkasan tagihan telah diunduh." });
+    } catch (err) {
+        toast({ variant: "destructive", title: "Gagal Menyimpan Gambar", description: "Terjadi kesalahan saat membuat file gambar." });
+        console.error('oops, something went wrong!', err);
+    }
+  };
 
-      setIsSuggesting(true);
-      try {
-        const input: SuggestEquitableSplitsInput = {
-            items: items.map(({ id, ...rest }) => rest), // remove id before sending to AI
-            people: people
-        };
-        const result = await suggestEquitableSplits(input);
-        setSuggestion(result);
-      } catch (error) {
-          toast({
-                variant: "destructive",
-                title: "Saran AI Gagal",
-                description: "Tidak dapat menghasilkan saran pembagian saat ini.",
-            });
-            setSuggestion(null);
-      } finally {
-          setIsSuggesting(false);
-      }
-  }
 
   const totals = useMemo(() => {
     const subtotal = items.reduce((acc, item) => acc + Number(item.price || 0), 0);
@@ -518,42 +509,58 @@ export default function BillSplitter() {
                     </div>
                 </CardContent>
                 <CardFooter className="flex-col gap-2">
-                    <Button onClick={handleSuggestSplit} disabled={isSuggesting} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                        {isSuggesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                        Sarankan Pembagian Adil
+                    <Button onClick={() => setShowSummaryModal(true)} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Lihat Ringkasan Pembagian
                     </Button>
                 </CardFooter>
             </Card>
         </div>
       </div>
-       <AlertDialog open={!!suggestion} onOpenChange={(open) => !open && setSuggestion(null)}>
+       <AlertDialog open={showSummaryModal} onOpenChange={setShowSummaryModal}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-                <Sparkles className="text-accent" />
-                Pembagian Adil dengan AI
+                <ReceiptText className="text-accent" />
+                Ringkasan Pembagian Tagihan
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              {suggestion?.explanation}
-            </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="max-h-60 overflow-y-auto p-1">
-            <div className="space-y-2">
-                {suggestion?.splits.map(split => (
-                    <div key={split.person} className="flex justify-between p-2 rounded-md bg-muted/50">
-                        <span className="font-medium">{split.person}</span>
-                        <span className="font-bold">{split.amountOwed.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+          <div ref={summaryRef} className="bg-white p-4 rounded-md">
+            <div className="space-y-4 text-black">
+                <h3 className="text-lg font-bold text-center">Rincian Tagihan</h3>
+                 <Separator className="bg-gray-300" />
+                 <div className="flex justify-between font-bold text-lg">
+                    <span>TOTAL TAGIHAN</span>
+                    <span>{totals.grandTotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                </div>
+                 <Separator className="bg-gray-300"/>
+                 <div>
+                    <h4 className="font-semibold mb-2 text-center">Pembagian per Orang</h4>
+                    <div className="space-y-2">
+                        {people.map((person) => (
+                        <div key={person} className="flex justify-between p-2 rounded-md bg-gray-100">
+                            <span className="font-medium">{person}</span>
+                            <span className="font-bold">{totals.individualTotals[person]?.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                        </div>
+                        ))}
                     </div>
-                ))}
+                 </div>
+                 <Separator className="bg-gray-300"/>
+                 <div className="text-xs text-gray-500 pt-2">
+                    <p>Subtotal: {totals.subtotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</p>
+                    <p>Pajak ({taxPercent}%): {totals.taxAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</p>
+                    {discountValue > 0 && <p>Diskon: -{totals.discountAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</p>}
+                    {additionalCharges > 0 && <p>Biaya Tambahan: {Number(additionalCharges).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</p>}
+                    {shippingCost > 0 && <p>Ongkos Kirim: {Number(shippingCost).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</p>}
+                 </div>
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setSuggestion(null)}>Mengerti!</AlertDialogAction>
+            <AlertDialogCancel>Tutup</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSaveSummary}><Download className="mr-2 h-4 w-4" /> Simpan sebagai JPEG</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
   );
 }
-
-    
