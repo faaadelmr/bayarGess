@@ -209,44 +209,59 @@ export default function BillSplitter() {
   const totals = useMemo(() => {
     const subtotal = items.reduce((acc, item) => acc + Number(item.price || 0), 0);
     
-    const taxAmount = (subtotal * (Number(taxPercent) || 0)) / 100;
-
-    let discountAmount = 0;
+    // Calculate total discount amount
+    let totalDiscountAmount = 0;
     if (discountType === 'fixed') {
-        discountAmount = Number(discountValue) || 0;
+        totalDiscountAmount = Number(discountValue) || 0;
     } else { // percentage
         const calculatedDiscount = subtotal * (Number(discountValue) || 0) / 100;
         const max = Number(maxDiscount) || 0;
-        discountAmount = max > 0 ? Math.min(calculatedDiscount, max) : calculatedDiscount;
+        totalDiscountAmount = max > 0 ? Math.min(calculatedDiscount, max) : calculatedDiscount;
     }
 
-    const subtotalAfterDiscount = subtotal - discountAmount;
-    
-    const otherCosts = taxAmount + (Number(additionalCharges) || 0) + (Number(shippingCost) || 0);
-    const grandTotal = subtotalAfterDiscount + otherCosts;
+    // Calculate total tax amount based on subtotal
+    const totalTaxAmount = subtotal * (Number(taxPercent) || 0) / 100;
 
-    const individualTotals: Record<Person, number> = {};
-    people.forEach((person) => (individualTotals[person] = 0));
+    // Calculate each person's subtotal from items
+    const personSubtotals: Record<Person, number> = {};
+    people.forEach((person) => (personSubtotals[person] = 0));
 
     items.forEach((item) => {
       const price = Number(item.price || 0);
       const consumers = item.consumers.length > 0 ? item.consumers : people;
       const share = price / consumers.length;
       consumers.forEach((person) => {
-        if (individualTotals[person] !== undefined) {
-          individualTotals[person] += share;
+        if (personSubtotals[person] !== undefined) {
+          personSubtotals[person] += share;
         }
       });
     });
 
+    // Calculate final individual totals
+    const individualTotals: Record<Person, number> = {};
     people.forEach((person) => {
-        const personSubtotal = individualTotals[person];
-        // Distribute discount and other costs proportionally to each person's subtotal
-        const personShareOfPostSubtotalCosts = subtotal > 0 ? (personSubtotal / subtotal) * (otherCosts - discountAmount) : (otherCosts - discountAmount) / people.length;
-        individualTotals[person] += personShareOfPostSubtotalCosts;
-    });
+        const pSubtotal = personSubtotals[person];
+        const proportion = subtotal > 0 ? pSubtotal / subtotal : 0;
 
-    return { subtotal, grandTotal, individualTotals, taxAmount, discountAmount };
+        // Distribute tax and discount proportionally
+        const personTax = totalTaxAmount * proportion;
+        const personDiscount = totalDiscountAmount * proportion;
+
+        // Distribute additional charges and shipping equally
+        const personShareOfOtherCosts = people.length > 0 ? ((Number(additionalCharges) || 0) + (Number(shippingCost) || 0)) / people.length : 0;
+
+        individualTotals[person] = pSubtotal + personTax - personDiscount + personShareOfOtherCosts;
+    });
+    
+    const grandTotal = Object.values(individualTotals).reduce((acc, total) => acc + total, 0);
+
+    return { 
+        subtotal, 
+        grandTotal, 
+        individualTotals, 
+        taxAmount: totalTaxAmount, 
+        discountAmount: totalDiscountAmount 
+    };
   }, [items, people, taxPercent, additionalCharges, shippingCost, discountType, discountValue, maxDiscount]);
   
   const personItems = useMemo(() => {
