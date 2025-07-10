@@ -42,6 +42,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import Image from 'next/image';
 import { analyzeReceiptImage } from "@/ai/flows/analyze-receipt-image";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toJpeg } from 'html-to-image';
@@ -570,7 +571,12 @@ export default function BillSplitter() {
           </AlertDialogHeader>
           <div ref={summaryRef} className="bg-white p-4 rounded-md">
             <div className="space-y-4 text-black">
-                <h3 className="text-lg font-bold text-center">Rincian Tagihan</h3>
+                <div className="text-center">
+                    {/* Replace with your logo image */}
+                    <Image src="/logo.png" alt="Logo" width={80} height={80} className="mx-auto mb-2" />
+                <h3 className="text-lg font-bold text-center">Rincian Tagihanya Gess..</h3>
+                </div>
+
                  <Separator className="bg-gray-300" />
                  <div className="flex justify-between font-bold text-lg">
                     <span>TOTAL TAGIHAN</span>
@@ -624,6 +630,10 @@ export default function BillSplitter() {
                     {discountValue > 0 && <div className="flex justify-between"><span>Diskon:</span> <span>-{totals.discountAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>}
                     {additionalCharges > 0 && <div className="flex justify-between"><span>Biaya Tambahan:</span> <span>{Number(additionalCharges).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>}
                     {shippingCost > 0 && <div className="flex justify-between"><span>Ongkos Kirim:</span> <span>{Number(shippingCost).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>}
+                 </div>
+                 <Separator className="bg-gray-300"/>
+                 <div className="text-center text-xs text-gray-500 mt-4">
+                    Dibuat dengan <a href="https://billsplitter.vercel.app" target="_blank" rel="noopener noreferrer" className="underline">BillSplitter</a>
                  </div>
             </div>
           </div>
