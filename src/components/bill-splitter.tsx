@@ -8,7 +8,6 @@ import {
   ReceiptText,
   Upload,
   Sparkles,
-  Download,
   Loader2,
   ChevronDown,
 } from "lucide-react";
@@ -23,7 +22,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -58,7 +56,9 @@ type Person = string;
 export default function BillSplitter() {
   const [people, setPeople] = useState<Person[]>(["You"]);
   const [items, setItems] = useState<Item[]>([]);
-  const [tipPercentage, setTipPercentage] = useState(15);
+  const [tax, setTax] = useState(0);
+  const [additionalCharges, setAdditionalCharges] = useState(0);
+  const [shippingCost, setShippingCost] = useState(0);
   const [newPersonName, setNewPersonName] = useState("");
   const { toast } = useToast();
 
@@ -203,13 +203,15 @@ export default function BillSplitter() {
                 description: "Could not generate a split suggestion at this time.",
             });
             setSuggestion(null);
+      } finally {
+          setIsSuggesting(false);
       }
   }
 
   const totals = useMemo(() => {
     const subtotal = items.reduce((acc, item) => acc + Number(item.price || 0), 0);
-    const tipAmount = subtotal * (tipPercentage / 100);
-    const grandTotal = subtotal + tipAmount;
+    const otherCosts = (Number(tax) || 0) + (Number(additionalCharges) || 0) + (Number(shippingCost) || 0);
+    const grandTotal = subtotal + otherCosts;
 
     const individualTotals: Record<Person, number> = {};
     people.forEach((person) => (individualTotals[person] = 0));
@@ -227,26 +229,12 @@ export default function BillSplitter() {
 
     people.forEach((person) => {
         const personSubtotal = individualTotals[person];
-        const personTip = subtotal > 0 ? (personSubtotal / subtotal) * tipAmount : 0;
-        individualTotals[person] += personTip;
+        const personShareOfOtherCosts = subtotal > 0 ? (personSubtotal / subtotal) * otherCosts : (otherCosts / people.length);
+        individualTotals[person] += personShareOfOtherCosts;
     });
 
-    return { subtotal, tipAmount, grandTotal, individualTotals };
-  }, [items, people, tipPercentage]);
-
-  const exportToJson = () => {
-    const data = {
-        people,
-        items: items.map(({id, ...rest}) => rest),
-        tipPercentage,
-        totals,
-    };
-    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data, null, 2))}`;
-    const link = document.createElement("a");
-    link.href = jsonString;
-    link.download = `billsplit-buddy-${new Date().toISOString()}.json`;
-    link.click();
-  }
+    return { subtotal, grandTotal, individualTotals, otherCosts };
+  }, [items, people, tax, additionalCharges, shippingCost]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -414,22 +402,44 @@ export default function BillSplitter() {
                         <span className="text-muted-foreground">Subtotal</span>
                         <span>{totals.subtotal.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</span>
                     </div>
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground">Tip ({tipPercentage}%)</span>
-                        <span>{totals.tipAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</span>
-                    </div>
-                    <div>
-                        <Label htmlFor="tip-slider">Tip Percentage</Label>
-                        <Slider
-                            id="tip-slider"
-                            min={0}
-                            max={30}
-                            step={1}
-                            value={[tipPercentage]}
-                            onValueChange={(value) => setTipPercentage(value[0])}
-                            className="mt-2"
+                    
+                    <div className="space-y-2">
+                        <Label htmlFor="tax">Pajak</Label>
+                        <Input
+                            id="tax"
+                            type="number"
+                            placeholder="0.00"
+                            value={tax || ""}
+                            onChange={(e) => setTax(parseFloat(e.target.value) || 0)}
+                            min="0"
+                            step="0.01"
                         />
                     </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="additional-charges">Biaya Tambahan</Label>
+                        <Input
+                            id="additional-charges"
+                            type="number"
+                            placeholder="0.00"
+                            value={additionalCharges || ""}
+                            onChange={(e) => setAdditionalCharges(parseFloat(e.target.value) || 0)}
+                             min="0"
+                            step="0.01"
+                        />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="shipping-cost">Ongkos Kirim</Label>
+                        <Input
+                            id="shipping-cost"
+                            type="number"
+                            placeholder="0.00"
+                            value={shippingCost || ""}
+                            onChange={(e) => setShippingCost(parseFloat(e.target.value) || 0)}
+                            min="0"
+                            step="0.01"
+                        />
+                    </div>
+                    
                     <Separator />
                     <div className="flex justify-between font-bold text-lg">
                         <span>Total</span>
@@ -450,10 +460,6 @@ export default function BillSplitter() {
                     <Button onClick={handleSuggestSplit} disabled={isSuggesting} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
                         {isSuggesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                         Suggest Equitable Split
-                    </Button>
-                    <Button onClick={exportToJson} variant="secondary" className="w-full">
-                        <Download className="mr-2 h-4 w-4" />
-                        Export JSON
                     </Button>
                 </CardFooter>
             </Card>
