@@ -194,7 +194,11 @@ export default function BillSplitter() {
         return;
     }
     try {
-        const dataUrl = await toJpeg(summaryRef.current, { quality: 0.95, backgroundColor: 'white' });
+        const dataUrl = await toJpeg(summaryRef.current, { 
+            quality: 1.0, 
+            backgroundColor: 'white',
+            pixelRatio: 3 // Increase pixel ratio for better quality
+        });
         const link = document.createElement('a');
         link.download = 'ringkasan-tagihan.jpeg';
         link.href = dataUrl;
@@ -562,79 +566,80 @@ export default function BillSplitter() {
         </div>
       </div>
        <AlertDialog open={showSummaryModal} onOpenChange={setShowSummaryModal}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
                 <ReceiptText className="text-accent" />
                 Ringkasan Pembagian Tagihan
             </AlertDialogTitle>
           </AlertDialogHeader>
-          <div ref={summaryRef} className="bg-white p-4 rounded-md">
-            <div className="space-y-4 text-black">
-                <div className="text-center">
-                    {/* Replace with your logo image */}
-                    <Image src="/logo.png" alt="Logo" width={80} height={80} className="mx-auto mb-2" />
-                <h3 className="text-lg font-bold text-center">Rincian Tagihanya Gess..</h3>
-                </div>
-
-                 <Separator className="bg-gray-300" />
-                 <div className="flex justify-between font-bold text-lg">
-                    <span>TOTAL TAGIHAN</span>
-                    <span>{totals.grandTotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
-                </div>
-                 <Separator className="bg-gray-300"/>
-                 <div>
-                    <h4 className="font-semibold mb-2 text-center">Pembagian per Orang</h4>
-                    <div className="space-y-4">
-                      {people.map((person) => (
-                        <div key={person} className="p-2 rounded-md bg-gray-100">
-                          <div className="flex justify-between font-bold">
-                            <span>{person}</span>
-                            <span>{totals.individualTotals[person]?.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
-                          </div>
-                          <Separator className="my-2 bg-gray-200" />
-                          <div className="space-y-1 text-sm">
-                            {personItems[person].map((item, index) => (
-                              <div key={index} className="flex justify-between">
-                                <span className="text-gray-600">{item.name}</span>
-                                <span className="text-gray-800">{item.price.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
-                              </div>
-                            ))}
-                             {(totals.personDiscounts[person] > 0) && (
-                                <>
-                                  <Separator className="my-1 bg-gray-200" />
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-600">Diskon</span>
-                                    <span className="text-green-600">- {totals.personDiscounts[person].toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
-                                  </div>
-                                </>
-                              )}
-                             {(additionalCharges > 0 || shippingCost > 0) && (
-                                <>
-                                  <Separator className="my-1 bg-gray-200" />
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-600">Biaya Lainnya</span>
-                                    <span className="text-gray-800">{totals.personShareOfOtherCosts.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
-                                  </div>
-                                </>
-                              )}
-                          </div>
-                        </div>
-                      ))}
+          <div className="max-h-[70vh] overflow-y-auto pr-2">
+            <div ref={summaryRef} className="bg-white p-4 rounded-md">
+                <div className="space-y-4 text-black">
+                    <div className="text-center">
+                        <Image src="/logo.png" alt="Logo" width={80} height={80} className="mx-auto mb-2" />
+                        <h3 className="text-lg font-bold text-center">Rincian Tagihanya Gess..</h3>
                     </div>
-                 </div>
-                 <Separator className="bg-gray-300"/>
-                 <div className="text-xs text-gray-500 pt-2 space-y-1">
-                    <div className="flex justify-between"><span>Subtotal:</span> <span>{totals.subtotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>
-                    <div className="flex justify-between"><span>Pajak ({taxPercent}%):</span> <span>{totals.taxAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>
-                    {discountValue > 0 && <div className="flex justify-between"><span>Diskon:</span> <span>-{totals.discountAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>}
-                    {additionalCharges > 0 && <div className="flex justify-between"><span>Biaya Tambahan:</span> <span>{Number(additionalCharges).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>}
-                    {shippingCost > 0 && <div className="flex justify-between"><span>Ongkos Kirim:</span> <span>{Number(shippingCost).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>}
-                 </div>
-                 <Separator className="bg-gray-300"/>
-                 <div className="text-center text-xs text-gray-500 mt-4">
-                    Dibuat dengan <a href="https://billsplitter.vercel.app" target="_blank" rel="noopener noreferrer" className="underline">BillSplitter</a>
-                 </div>
+
+                    <Separator className="bg-gray-300" />
+                    <div className="flex justify-between font-bold text-lg">
+                        <span>TOTAL TAGIHAN</span>
+                        <span>{totals.grandTotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                    </div>
+                    <Separator className="bg-gray-300"/>
+                    <div>
+                        <h4 className="font-semibold mb-2 text-center">Pembagian per Orang</h4>
+                        <div className="space-y-4">
+                        {people.map((person) => (
+                            <div key={person} className="p-2 rounded-md bg-gray-100">
+                            <div className="flex justify-between font-bold">
+                                <span>{person}</span>
+                                <span>{totals.individualTotals[person]?.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                            </div>
+                            <Separator className="my-2 bg-gray-200" />
+                            <div className="space-y-1 text-sm">
+                                {personItems[person].map((item, index) => (
+                                <div key={index} className="flex justify-between">
+                                    <span className="text-gray-600">{item.name}</span>
+                                    <span className="text-gray-800">{item.price.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                                </div>
+                                ))}
+                                {(totals.personDiscounts[person] > 0) && (
+                                    <>
+                                    <Separator className="my-1 bg-gray-200" />
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Diskon</span>
+                                        <span className="text-green-600">- {totals.personDiscounts[person].toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                                    </div>
+                                    </>
+                                )}
+                                {(additionalCharges > 0 || shippingCost > 0) && (
+                                    <>
+                                    <Separator className="my-1 bg-gray-200" />
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Biaya Lainnya</span>
+                                        <span className="text-gray-800">{totals.personShareOfOtherCosts.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                                    </div>
+                                    </>
+                                )}
+                            </div>
+                            </div>
+                        ))}
+                        </div>
+                    </div>
+                    <Separator className="bg-gray-300"/>
+                    <div className="text-xs text-gray-500 pt-2 space-y-1">
+                        <div className="flex justify-between"><span>Subtotal:</span> <span>{totals.subtotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>
+                        <div className="flex justify-between"><span>Pajak ({taxPercent}%):</span> <span>{totals.taxAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>
+                        {discountValue > 0 && <div className="flex justify-between"><span>Diskon:</span> <span>-{totals.discountAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>}
+                        {additionalCharges > 0 && <div className="flex justify-between"><span>Biaya Tambahan:</span> <span>{Number(additionalCharges).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>}
+                        {shippingCost > 0 && <div className="flex justify-between"><span>Ongkos Kirim:</span> <span>{Number(shippingCost).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>}
+                    </div>
+                    <Separator className="bg-gray-300"/>
+                    <div className="text-center text-xs text-gray-500 mt-4">
+                        Dibuat dengan <a href="https://billsplitter.vercel.app" target="_blank" rel="noopener noreferrer" className="underline">BillSplitter</a>
+                    </div>
+                </div>
             </div>
           </div>
           <AlertDialogFooter>
