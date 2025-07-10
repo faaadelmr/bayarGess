@@ -221,6 +221,8 @@ export default function BillSplitter() {
 
     // Calculate total tax amount based on subtotal
     const totalTaxAmount = subtotal * (Number(taxPercent) || 0) / 100;
+    
+    const personShareOfOtherCosts = people.length > 0 ? ((Number(additionalCharges) || 0) + (Number(shippingCost) || 0)) / people.length : 0;
 
     // Calculate each person's subtotal from items
     const personSubtotals: Record<Person, number> = {};
@@ -247,9 +249,6 @@ export default function BillSplitter() {
         const personTax = totalTaxAmount * proportion;
         const personDiscount = totalDiscountAmount * proportion;
 
-        // Distribute additional charges and shipping equally
-        const personShareOfOtherCosts = people.length > 0 ? ((Number(additionalCharges) || 0) + (Number(shippingCost) || 0)) / people.length : 0;
-
         individualTotals[person] = pSubtotal + personTax - personDiscount + personShareOfOtherCosts;
     });
     
@@ -260,7 +259,8 @@ export default function BillSplitter() {
         grandTotal, 
         individualTotals, 
         taxAmount: totalTaxAmount, 
-        discountAmount: totalDiscountAmount 
+        discountAmount: totalDiscountAmount,
+        personShareOfOtherCosts
     };
   }, [items, people, taxPercent, additionalCharges, shippingCost, discountType, discountValue, maxDiscount]);
   
@@ -587,6 +587,15 @@ export default function BillSplitter() {
                                 <span className="text-gray-800">{item.price.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
                               </div>
                             ))}
+                             {(additionalCharges > 0 || shippingCost > 0) && (
+                                <>
+                                  <Separator className="my-1 bg-gray-200" />
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Biaya Lainnya</span>
+                                    <span className="text-gray-800">{totals.personShareOfOtherCosts.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                                  </div>
+                                </>
+                              )}
                           </div>
                         </div>
                       ))}
@@ -611,3 +620,4 @@ export default function BillSplitter() {
     </div>
   );
 }
+
