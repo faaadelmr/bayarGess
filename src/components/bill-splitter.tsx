@@ -209,22 +209,19 @@ export default function BillSplitter() {
   const totals = useMemo(() => {
     const subtotal = items.reduce((acc, item) => acc + Number(item.price || 0), 0);
     
-    // Calculate total discount amount
     let totalDiscountAmount = 0;
     if (discountType === 'fixed') {
         totalDiscountAmount = Number(discountValue) || 0;
-    } else { // percentage
+    } else {
         const calculatedDiscount = subtotal * (Number(discountValue) || 0) / 100;
         const max = Number(maxDiscount) || 0;
         totalDiscountAmount = max > 0 ? Math.min(calculatedDiscount, max) : calculatedDiscount;
     }
 
-    // Calculate total tax amount based on subtotal
     const totalTaxAmount = subtotal * (Number(taxPercent) || 0) / 100;
     
     const personShareOfOtherCosts = people.length > 0 ? ((Number(additionalCharges) || 0) + (Number(shippingCost) || 0)) / people.length : 0;
 
-    // Calculate each person's subtotal from items
     const personSubtotals: Record<Person, number> = {};
     people.forEach((person) => (personSubtotals[person] = 0));
 
@@ -239,15 +236,15 @@ export default function BillSplitter() {
       });
     });
 
-    // Calculate final individual totals
     const individualTotals: Record<Person, number> = {};
+    const personDiscounts: Record<Person, number> = {};
     people.forEach((person) => {
         const pSubtotal = personSubtotals[person];
         const proportion = subtotal > 0 ? pSubtotal / subtotal : 0;
 
-        // Distribute tax and discount proportionally
         const personTax = totalTaxAmount * proportion;
         const personDiscount = totalDiscountAmount * proportion;
+        personDiscounts[person] = personDiscount;
 
         individualTotals[person] = pSubtotal + personTax - personDiscount + personShareOfOtherCosts;
     });
@@ -260,7 +257,8 @@ export default function BillSplitter() {
         individualTotals, 
         taxAmount: totalTaxAmount, 
         discountAmount: totalDiscountAmount,
-        personShareOfOtherCosts
+        personShareOfOtherCosts,
+        personDiscounts,
     };
   }, [items, people, taxPercent, additionalCharges, shippingCost, discountType, discountValue, maxDiscount]);
   
@@ -587,6 +585,15 @@ export default function BillSplitter() {
                                 <span className="text-gray-800">{item.price.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
                               </div>
                             ))}
+                             {(totals.personDiscounts[person] > 0) && (
+                                <>
+                                  <Separator className="my-1 bg-gray-200" />
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Diskon</span>
+                                    <span className="text-green-600">- {totals.personDiscounts[person].toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                                  </div>
+                                </>
+                              )}
                              {(additionalCharges > 0 || shippingCost > 0) && (
                                 <>
                                   <Separator className="my-1 bg-gray-200" />
@@ -620,4 +627,3 @@ export default function BillSplitter() {
     </div>
   );
 }
-
