@@ -54,7 +54,7 @@ type Item = {
 type Person = string;
 
 export default function BillSplitter() {
-  const [people, setPeople] = useState<Person[]>(["You"]);
+  const [people, setPeople] = useState<Person[]>(["Anda"]);
   const [items, setItems] = useState<Item[]>([]);
   const [tax, setTax] = useState(0);
   const [additionalCharges, setAdditionalCharges] = useState(0);
@@ -73,8 +73,8 @@ export default function BillSplitter() {
     } else {
       toast({
         variant: "destructive",
-        title: "Invalid Name",
-        description: "Please enter a unique name.",
+        title: "Nama Tidak Valid",
+        description: "Harap masukkan nama yang unik.",
       });
     }
   };
@@ -138,8 +138,8 @@ export default function BillSplitter() {
     if (!file.type.startsWith("image/")) {
       toast({
         variant: "destructive",
-        title: "Invalid File Type",
-        description: "Please upload an image file.",
+        title: "Tipe File Tidak Valid",
+        description: "Harap unggah file gambar.",
       });
       return;
     }
@@ -155,14 +155,14 @@ export default function BillSplitter() {
             const newItems: Item[] = extractedItems.map(item => ({...item, id: crypto.randomUUID(), consumers: [] }));
             setItems(prev => [...prev, ...newItems]);
             toast({
-                title: "Receipt Analyzed",
-                description: `${newItems.length} items have been added to your bill.`,
+                title: "Struk Dianalisis",
+                description: `${newItems.length} item telah ditambahkan ke tagihan Anda.`,
             });
         } catch (error) {
              toast({
                 variant: "destructive",
-                title: "AI Error",
-                description: "Failed to analyze receipt. Please add items manually.",
+                title: "Kesalahan AI",
+                description: "Gagal menganalisis struk. Harap tambahkan item secara manual.",
             });
         } finally {
             setIsAnalyzing(false);
@@ -171,8 +171,8 @@ export default function BillSplitter() {
     } catch (error) {
         toast({
             variant: "destructive",
-            title: "Error Reading File",
-            description: "Could not read the selected file.",
+            title: "Gagal Membaca File",
+            description: "Tidak dapat membaca file yang dipilih.",
         });
         setIsAnalyzing(false);
     }
@@ -182,8 +182,8 @@ export default function BillSplitter() {
       if (items.length === 0 || people.length === 0) {
            toast({
                 variant: "destructive",
-                title: "Not enough data",
-                description: "Please add items and participants before suggesting a split.",
+                title: "Data tidak cukup",
+                description: "Harap tambahkan item dan peserta sebelum menyarankan pembagian.",
             });
             return;
       }
@@ -199,8 +199,8 @@ export default function BillSplitter() {
       } catch (error) {
           toast({
                 variant: "destructive",
-                title: "AI Suggestion Failed",
-                description: "Could not generate a split suggestion at this time.",
+                title: "Saran AI Gagal",
+                description: "Tidak dapat menghasilkan saran pembagian saat ini.",
             });
             setSuggestion(null);
       } finally {
@@ -243,10 +243,10 @@ export default function BillSplitter() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="text-primary" />
-              Participants
+              Peserta
             </CardTitle>
             <CardDescription>
-              Add everyone involved in this bill.
+              Tambahkan semua orang yang terlibat dalam tagihan ini.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -257,7 +257,7 @@ export default function BillSplitter() {
                   className="flex items-center justify-between"
                 >
                   <p className="font-medium">{person}</p>
-                  {person !== "You" && (
+                  {person !== "Anda" && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -272,12 +272,12 @@ export default function BillSplitter() {
           </CardContent>
           <CardFooter className="flex gap-2">
             <Input
-              placeholder="New person's name"
+              placeholder="Nama orang baru"
               value={newPersonName}
               onChange={(e) => setNewPersonName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddPerson()}
             />
-            <Button onClick={handleAddPerson} aria-label="Add person">
+            <Button onClick={handleAddPerson} aria-label="Tambah Orang">
               <Plus />
             </Button>
           </CardFooter>
@@ -289,22 +289,22 @@ export default function BillSplitter() {
                 <div>
                     <CardTitle className="flex items-center gap-2">
                         <ReceiptText className="text-primary" />
-                        Bill Items
+                        Item Tagihan
                     </CardTitle>
                     <CardDescription>
-                        Upload a receipt or add items manually.
+                        Unggah struk atau tambahkan item secara manual.
                     </CardDescription>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
                     <Button asChild variant="outline" className="flex-1">
                       <Label>
                         {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                        Upload
+                        Unggah
                         <Input type="file" accept="image/*" className="sr-only" onChange={handleFileChange} disabled={isAnalyzing}/>
                       </Label>
                     </Button>
                     <Button onClick={handleAddItem} className="flex-1">
-                        <Plus className="mr-2 h-4 w-4" /> Add Item
+                        <Plus className="mr-2 h-4 w-4" /> Tambah Item
                     </Button>
                 </div>
             </div>
@@ -313,20 +313,20 @@ export default function BillSplitter() {
             <div className="space-y-4">
                 {items.length === 0 && !isAnalyzing && (
                     <div className="text-center text-muted-foreground py-8">
-                        <p>No items yet.</p>
-                        <p className="text-sm">Add an item or upload a receipt to get started.</p>
+                        <p>Belum ada item.</p>
+                        <p className="text-sm">Tambahkan item atau unggah struk untuk memulai.</p>
                     </div>
                 )}
                 {isAnalyzing && items.length === 0 && (
                     <div className="flex justify-center items-center py-8 text-muted-foreground">
                         <Loader2 className="mr-2 h-6 w-6 animate-spin"/>
-                        <p>AI is analyzing your receipt...</p>
+                        <p>AI sedang menganalisis struk Anda...</p>
                     </div>
                 )}
                 {items.map((item, index) => (
                     <div key={item.id} className="flex flex-col sm:flex-row items-center gap-2 transition-all duration-300">
                         <Input
-                            placeholder="Item Name"
+                            placeholder="Nama Item"
                             value={item.name}
                             onChange={(e) =>
                             handleUpdateItem(item.id, "name", e.target.value)
@@ -335,7 +335,7 @@ export default function BillSplitter() {
                         />
                         <Input
                             type="number"
-                            placeholder="Price"
+                            placeholder="Harga"
                             value={item.price || ""}
                             onChange={(e) =>
                             handleUpdateItem(
@@ -353,10 +353,10 @@ export default function BillSplitter() {
                                 <Button variant="outline" className="w-full sm:w-auto justify-start text-left font-normal">
                                     <span className="truncate flex-1">
                                     {item.consumers.length === 0
-                                        ? "Split between all"
+                                        ? "Bagi rata untuk semua"
                                         : item.consumers.length === 1
                                         ? item.consumers[0]
-                                        : `${item.consumers.length} people`}
+                                        : `${item.consumers.length} orang`}
                                     </span>
                                     <ChevronDown className="ml-2 h-4 w-4 text-muted-foreground" />
                                 </Button>
@@ -379,7 +379,7 @@ export default function BillSplitter() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleDeleteItem(item.id)}
-                            aria-label="Delete item"
+                            aria-label="Hapus item"
                         >
                             <Trash2 className="h-4 w-4 text-muted-foreground" />
                         </Button>
@@ -394,8 +394,8 @@ export default function BillSplitter() {
         <div className="sticky top-24 space-y-8">
             <Card>
                 <CardHeader>
-                    <CardTitle>Summary</CardTitle>
-                    <CardDescription>The final breakdown of who owes what.</CardDescription>
+                    <CardTitle>Ringkasan</CardTitle>
+                    <CardDescription>Rincian akhir tentang siapa berutang apa.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex justify-between">
@@ -447,7 +447,7 @@ export default function BillSplitter() {
                     </div>
                     <Separator />
                     <div className="space-y-2">
-                        <h4 className="font-semibold">Individual Totals</h4>
+                        <h4 className="font-semibold">Total per Orang</h4>
                         {people.map((person) => (
                         <div key={person} className="flex justify-between">
                             <span className="text-muted-foreground">{person}</span>
@@ -459,7 +459,7 @@ export default function BillSplitter() {
                 <CardFooter className="flex-col gap-2">
                     <Button onClick={handleSuggestSplit} disabled={isSuggesting} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
                         {isSuggesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                        Suggest Equitable Split
+                        Sarankan Pembagian Adil
                     </Button>
                 </CardFooter>
             </Card>
@@ -470,7 +470,7 @@ export default function BillSplitter() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
                 <Sparkles className="text-accent" />
-                AI-Powered Equitable Split
+                Pembagian Adil dengan AI
             </AlertDialogTitle>
             <AlertDialogDescription>
               {suggestion?.explanation}
@@ -487,7 +487,7 @@ export default function BillSplitter() {
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setSuggestion(null)}>Got it!</AlertDialogAction>
+            <AlertDialogAction onClick={() => setSuggestion(null)}>Mengerti!</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
