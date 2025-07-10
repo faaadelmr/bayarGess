@@ -69,7 +69,7 @@ const prompt = ai.definePrompt({
 
   Here is the itemized bill:
   {{#each items}}
-  - {{name}} (${{price}}) - Consumed by: {{#each consumers}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+  - {{this.name}} ({{{this.price}}}) - Consumed by: {{#each this.consumers}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
   {{/each}}
 
   Here is the list of people:
