@@ -400,7 +400,7 @@ export default function BillSplitter() {
                 <CardContent className="space-y-4">
                     <div className="flex justify-between">
                         <span className="text-muted-foreground">Subtotal</span>
-                        <span>{totals.subtotal.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</span>
+                        <span>{totals.subtotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
                     </div>
                     
                     <div className="space-y-2">
@@ -443,7 +443,7 @@ export default function BillSplitter() {
                     <Separator />
                     <div className="flex justify-between font-bold text-lg">
                         <span>Total</span>
-                        <span>{totals.grandTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</span>
+                        <span>{totals.grandTotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
                     </div>
                     <Separator />
                     <div className="space-y-2">
@@ -451,7 +451,7 @@ export default function BillSplitter() {
                         {people.map((person) => (
                         <div key={person} className="flex justify-between">
                             <span className="text-muted-foreground">{person}</span>
-                            <span className="font-medium">{totals.individualTotals[person]?.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</span>
+                            <span className="font-medium">{totals.individualTotals[person]?.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
                         </div>
                         ))}
                     </div>
@@ -481,7 +481,7 @@ export default function BillSplitter() {
                 {suggestion?.splits.map(split => (
                     <div key={split.person} className="flex justify-between p-2 rounded-md bg-muted/50">
                         <span className="font-medium">{split.person}</span>
-                        <span className="font-bold">{split.amountOwed.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</span>
+                        <span className="font-bold">{split.amountOwed.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
                     </div>
                 ))}
             </div>
