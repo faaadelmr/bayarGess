@@ -1,5 +1,7 @@
 import BillSplitter from '@/components/bill-splitter';
 import { Logo } from '@/components/logo';
+import logof from '../../public/breathing.png';
+import Image from 'next/image';
 
 export default function Home() {
   return (
@@ -16,10 +18,29 @@ export default function Home() {
         <BillSplitter />
       </main>
       <footer className="flex items-center justify-center p-4 border-t">
-        <p className="text-sm text-muted-foreground">
-          Create with ❤️ by  
-          <a href="https://github.com/faaadelmr"> faaadelmr</a>
-        </p>
+            <div className="container mx-auto px-4">
+          <div className="flex flex-col items-center justify-between gap-2 sm:flex-row">
+                    <div className="mb-2 sm:mb-0">
+              <p className="text-xs text-base-content/80">
+                &copy; {new Date().getFullYear()}{" "}
+                <span className="font-medium text-red-600">bayarGess</span>. All rights
+                reserved.
+                        </p>
+                    </div>
+            <div className="flex items-center space-x-1 text-xs">
+              <span className="text-base-content/70">Crafted with </span>
+              <div className="flex items-center justify-center">
+                  <Image
+                    src={logof}
+                    alt="logo craft"
+                  />
+                </div> 
+              <a href="https://github.com/faaadelmr" className="text-red-500 hover:text-red-600 transition-colors duration-300">
+                faaadelmr
+              </a>
+                </div>
+            </div>
+        </div>
       </footer>
     </div>
   );

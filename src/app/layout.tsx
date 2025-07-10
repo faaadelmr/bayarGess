@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'BillSplit Buddy',
-  description: 'An intelligent bill splitting app that uses AI to make sharing expenses easy and fair.',
+  title: 'BayarGess',
+  description: 'Split tagihan dengan teman, menggunakan ai canggih untuk pembacaan tagihan nya.',
 };
 
 export default function RootLayout({
