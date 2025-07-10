@@ -194,10 +194,14 @@ export default function BillSplitter() {
         return;
     }
     try {
+        const filter = (node: HTMLElement) => {
+            return (node.tagName !== 'LINK');
+        }
         const dataUrl = await toJpeg(summaryRef.current, { 
             quality: 1.0, 
             backgroundColor: 'white',
-            pixelRatio: 3 // Increase pixel ratio for better quality
+            pixelRatio: 3, // Increase pixel ratio for better quality
+            filter: filter,
         });
         const link = document.createElement('a');
         link.download = 'ringkasan-tagihan.jpeg';
