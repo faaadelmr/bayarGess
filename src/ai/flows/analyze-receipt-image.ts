@@ -52,9 +52,11 @@ const prompt = ai.definePrompt({
 
   In addition to the items, you MUST also look for the following and extract their values:
   1.  **Tax (Pajak)**: Look for terms like "Pajak", "PPN", "PB1". 
-      - If the value is a percentage (e.g., 11%), extract the number only (11).
-      - If the value is a fixed amount, you MUST calculate the percentage based on the subtotal of all extracted items. For example, if subtotal is 100.000 and tax is 11.000, you should return 11.
-  2.  **Additional Charges (Biaya Tambahan)**: Look for terms like "Service Charge", "Biaya Layanan", or other fees that are not tax or shipping. Extract the numeric value.
+      - **CRITICAL**: First, check if the subtotal line says "Termasuk pajak" (Includes tax). If it does, you MUST NOT extract any tax value; omit the 'tax' field from the output.
+      - If the subtotal does NOT include tax, and you find a tax value:
+        - If the value is a percentage (e.g., 11%), extract the number only (11).
+        - If the value is a fixed amount, you MUST calculate the percentage based on the subtotal of all extracted items. For example, if subtotal is 100.000 and tax is 11.000, you should return 11.
+  2.  **Additional Charges (Biaya Tambahan)**: Look for terms like "Service Charge", "Biaya Layanan", "Biaya pemesanan", or other fees that are not tax or shipping. Extract the numeric value.
   3.  **Shipping Cost (Ongkos Kirim)**: Look for terms like "Ongkir", "Delivery Fee", "Biaya Pengiriman". Extract the numeric value.
 
   If any of these (tax, additionalCharges, shippingCost) are not found, omit them from the output.
