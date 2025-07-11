@@ -450,32 +450,34 @@ export default function BillSplitter() {
           </CardFooter>
         </Card>
 
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <ClipboardSignature className="text-primary" />
-                    Analisis Pesanan dari Teks
-                </CardTitle>
-                <CardDescription>
-                    Tempel daftar pesanan di sini. AI akan otomatis menambahkan peserta dan menetapkan itemnya.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Textarea
-                    placeholder={`Contoh:\n1. Budi: Nasi Goreng, Es Teh\n2. Ani: Mie Ayam`}
-                    value={assignmentText}
-                    onChange={(e) => setAssignmentText(e.target.value)}
-                    rows={6}
-                    disabled={isAnalyzingText}
-                />
-            </CardContent>
-            <CardFooter>
-                <Button onClick={handleAnalyzeText} disabled={isAnalyzingText} className="w-full">
-                    {isAnalyzingText ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                    Analisis Teks
-                </Button>
-            </CardFooter>
-        </Card>
+        {items.length > 0 && (
+          <Card>
+              <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                      <ClipboardSignature className="text-primary" />
+                      Analisis Pesanan dari Teks
+                  </CardTitle>
+                  <CardDescription>
+                      Tempel daftar pesanan di sini. AI akan otomatis menambahkan peserta dan menetapkan itemnya.
+                  </CardDescription>
+              </CardHeader>
+              <CardContent>
+                  <Textarea
+                      placeholder={`Contoh:\n1. Budi: Nasi Goreng, Es Teh\n2. Ani: Mie Ayam`}
+                      value={assignmentText}
+                      onChange={(e) => setAssignmentText(e.target.value)}
+                      rows={6}
+                      disabled={isAnalyzingText}
+                  />
+              </CardContent>
+              <CardFooter>
+                  <Button onClick={handleAnalyzeText} disabled={isAnalyzingText} className="w-full">
+                      {isAnalyzingText ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                      Analisis Teks
+                  </Button>
+              </CardFooter>
+          </Card>
+        )}
 
 
         <Card>
