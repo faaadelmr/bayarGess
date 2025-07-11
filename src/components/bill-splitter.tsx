@@ -61,6 +61,12 @@ type Item = {
 type Person = string;
 type DiscountType = 'fixed' | 'percentage';
 
+// Helper function for fuzzy matching item names
+const normalizeItemName = (name: string) => {
+    return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+};
+
+
 export default function BillSplitter() {
   const [people, setPeople] = useState<Person[]>([]);
   const [items, setItems] = useState<Item[]>([]);
@@ -225,58 +231,50 @@ export default function BillSplitter() {
       toast({ variant: "destructive", title: "Teks Kosong", description: "Harap masukkan teks untuk dianalisis." });
       return;
     }
+     if (items.length === 0) {
+      toast({ variant: "destructive", title: "Tidak Ada Item", description: "Harap unggah struk atau tambahkan item terlebih dahulu." });
+      return;
+    }
     setIsAnalyzingText(true);
     try {
-      const { people: extractedPeople, assignments } = await analyzeTextForSplits({ prompt: assignmentText });
+        const { people: extractedPeople, assignments } = await analyzeTextForSplits({ prompt: assignmentText });
 
-      // Add new people
-      const currentPeople = new Set(people);
-      const allPeopleSet = new Set([...people, ...extractedPeople]);
-      const newPeople = Array.from(allPeopleSet);
-      setPeople(newPeople);
+        // Add new people to the list
+        const allPeopleSet = new Set([...people, ...extractedPeople]);
+        const newPeople = Array.from(allPeopleSet);
+        setPeople(newPeople);
 
-      // Create a map of existing items for quick lookup
-      const itemMap = new Map(items.map(item => [item.name.toLowerCase().trim(), item]));
+        // Create a map of normalized item names for fuzzy matching
+        const itemMap = new Map(items.map(item => [normalizeItemName(item.name), item.id]));
+        const updatedItems = [...items];
 
-      // Update consumers for existing items and collect new items to be added
-      const newItemsFromText: { [key: string]: string[] } = {};
+        let assignmentsCount = 0;
 
-      assignments.forEach(assignment => {
-        assignment.items.forEach(itemName => {
-          const lowerItemName = itemName.toLowerCase().trim();
-          const existingItem = itemMap.get(lowerItemName);
-          if (existingItem) {
-            // Add consumer to existing item if not already present
-            if (!existingItem.consumers.includes(assignment.person)) {
-              existingItem.consumers.push(assignment.person);
-            }
-          } else {
-            // Collect new item to be added later
-            if (!newItemsFromText[itemName]) {
-              newItemsFromText[itemName] = [];
-            }
-            if (!newItemsFromText[itemName].includes(assignment.person)) {
-              newItemsFromText[itemName].push(assignment.person);
-            }
-          }
+        assignments.forEach(assignment => {
+            assignment.items.forEach(itemNameFromText => {
+                const normalizedItemName = normalizeItemName(itemNameFromText);
+                const matchedItemId = itemMap.get(normalizedItemName);
+
+                if (matchedItemId) {
+                    const itemIndex = updatedItems.findIndex(i => i.id === matchedItemId);
+                    if (itemIndex !== -1) {
+                        const person = assignment.person;
+                        const currentConsumers = updatedItems[itemIndex].consumers;
+                        if (!currentConsumers.includes(person)) {
+                            updatedItems[itemIndex].consumers = [...currentConsumers, person];
+                            assignmentsCount++;
+                        }
+                    }
+                }
+            });
         });
-      });
 
-      // Create new item objects for those not found in existing items
-      const itemsToAdd: Item[] = Object.entries(newItemsFromText).map(([name, consumers]) => ({
-        id: crypto.randomUUID(),
-        name: name,
-        price: 0,
-        consumers: consumers,
-      }));
+        setItems(updatedItems);
 
-      // Update the state
-      setItems([...items.map(item => itemMap.get(item.name.toLowerCase().trim()) || item), ...itemsToAdd]);
-
-      toast({
-        title: "Analisis Teks Berhasil",
-        description: `${extractedPeople.length} peserta dan penetapan item telah diperbarui.`,
-      });
+        toast({
+            title: "Analisis Teks Berhasil",
+            description: `${newPeople.length - people.length} peserta baru ditambahkan dan ${assignmentsCount} penetapan item berhasil dilakukan.`,
+        });
 
     } catch (error) {
       toast({
@@ -287,7 +285,7 @@ export default function BillSplitter() {
     } finally {
       setIsAnalyzingText(false);
     }
-  };
+};
 
 
   const handleSaveSummary = async () => {

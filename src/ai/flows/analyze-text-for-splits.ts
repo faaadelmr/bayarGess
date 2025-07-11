@@ -44,9 +44,10 @@ You will be given a block of text that lists people and the food or drink items 
 Follow these rules:
 1.  **Identify the Person**: The person's name is usually at the start of the line, often followed by a colon (:) or a number. Extract only the name.
 2.  **Identify the Items**: The items are listed after the person's name. They are typically separated by commas (,).
-3.  **Handle Variations**: Sometimes there are variations or notes with items (e.g., "Mie Goyang LVL 1 + Wizz Egg"). Treat this entire string as a single, unique item name. Do not try to split "Wizz Egg" into a separate item unless it's listed separately. For "ricebowl black pepper + es DJ", the items are "ricebowl black pepper" and "es DJ".
-4.  **Cleaning**: Trim any extra whitespace from names and items.
-5.  **Output Structure**:
+3.  **Handle Compound Items**: If an item description contains a plus sign (+) or similar separator, you MUST split it into separate, individual items. For example, "ricebowl black pepper + es DJ" MUST be parsed as two items: "ricebowl black pepper" and "es DJ". Similarly, "Mie Goyang LVL 1 + Wizz Egg" MUST be parsed as "Mie Goyang LVL 1" and "Wizz Egg".
+4.  **Handle Variations**: Sometimes there are notes with items (e.g., "Mie Goyang LVL 1 (Cabe 5)"). Treat the main part ("Mie Goyang LVL 1") as the item name and ignore the parenthetical note. The goal is to match item names flexibly.
+5.  **Cleaning**: Trim any extra whitespace from names and items.
+6.  **Output Structure**:
     - The 'people' field must be an array of unique names.
     - The 'assignments' field must be an array of objects, where each object contains a person's name and an array of the item names they ordered.
 
@@ -65,7 +66,7 @@ Follow these rules:
     { "person": "Firman", "items": ["Mie Goyang LVL 2", "Green Tea", "Udang Keju"] },
     { "person": "Fadel", "items": ["Mie Goyang LVL 2", "Udang Keju"] },
     { "person": "Dwi", "items": ["ricebowl black pepper", "es DJ"] },
-    { "person": "Winda", "items": ["Mie Goyang LVL 1 + Wizz Egg", "Ceker", "Lemon Splash Jumbo"] }
+    { "person": "Winda", "items": ["Mie Goyang LVL 1", "Wizz Egg", "Ceker", "Lemon Splash Jumbo"] }
   ]
 }
 
