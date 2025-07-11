@@ -59,7 +59,7 @@ type Person = string;
 type DiscountType = 'fixed' | 'percentage';
 
 export default function BillSplitter() {
-  const [people, setPeople] = useState<Person[]>(["Anda"]);
+  const [people, setPeople] = useState<Person[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [taxPercent, setTaxPercent] = useState(0);
   const [additionalCharges, setAdditionalCharges] = useState(0);
@@ -80,10 +80,17 @@ export default function BillSplitter() {
     if (newPersonName.trim() && !people.includes(newPersonName.trim())) {
       setPeople([...people, newPersonName.trim()]);
       setNewPersonName("");
-    } else {
+    } else if (!newPersonName.trim()) {
+        toast({
+            variant: "destructive",
+            title: "Nama Tidak Valid",
+            description: "Nama tidak boleh kosong.",
+        });
+    }
+    else {
       toast({
         variant: "destructive",
-        title: "Nama Tidak Valid",
+        title: "Nama Sudah Ada",
         description: "Harap masukkan nama yang unik.",
       });
     }
@@ -229,7 +236,8 @@ export default function BillSplitter() {
 
     const totalTaxAmount = subtotal * (Number(taxPercent) || 0) / 100;
     
-    const personShareOfOtherCosts = people.length > 0 ? ((Number(additionalCharges) || 0) + (Number(shippingCost) || 0)) / people.length : 0;
+    const totalAdditionalCosts = (Number(additionalCharges) || 0) + (Number(shippingCost) || 0);
+    const personShareOfOtherCosts = people.length > 0 ? totalAdditionalCosts / people.length : 0;
 
     const personSubtotals: Record<Person, number> = {};
     people.forEach((person) => (personSubtotals[person] = 0));
@@ -237,6 +245,7 @@ export default function BillSplitter() {
     items.forEach((item) => {
       const price = Number(item.price || 0);
       const consumers = item.consumers.length > 0 ? item.consumers : people;
+      if (consumers.length === 0) return;
       const share = price / consumers.length;
       consumers.forEach((person) => {
         if (personSubtotals[person] !== undefined) {
@@ -248,8 +257,8 @@ export default function BillSplitter() {
     const individualTotals: Record<Person, number> = {};
     const personDiscounts: Record<Person, number> = {};
     people.forEach((person) => {
-        const pSubtotal = personSubtotals[person];
-        const proportion = subtotal > 0 ? pSubtotal / subtotal : 0;
+        const pSubtotal = personSubtotals[person] || 0;
+        const proportion = subtotal > 0 ? pSubtotal / subtotal : (people.length > 0 ? 1 / people.length : 0);
 
         const personTax = totalTaxAmount * proportion;
         const personDiscount = totalDiscountAmount * proportion;
@@ -277,7 +286,7 @@ export default function BillSplitter() {
       personItemsMap[person] = [];
       items.forEach(item => {
         const consumers = item.consumers.length > 0 ? item.consumers : people;
-        if (consumers.includes(person)) {
+        if (consumers.length > 0 && consumers.includes(person)) {
           personItemsMap[person].push({
             name: item.name,
             price: (Number(item.price) || 0) / consumers.length,
@@ -304,21 +313,22 @@ export default function BillSplitter() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4">
+              {people.length === 0 && (
+                <p className="text-muted-foreground text-center py-4">Belum ada peserta.</p>
+              )}
               {people.map((person) => (
                 <div
                   key={person}
                   className="flex items-center justify-between"
                 >
                   <p className="font-medium">{person}</p>
-                  {person !== "Anda" && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeletePerson(person)}
-                    >
-                      <Trash2 className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeletePerson(person)}
+                  >
+                    <Trash2 className="h-4 w-4 text-muted-foreground" />
+                  </Button>
                 </div>
               ))}
             </div>
@@ -407,7 +417,7 @@ export default function BillSplitter() {
                         </div>
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant="outline" className="w-full sm:w-auto justify-start text-left font-normal">
+                                <Button variant="outline" className="w-full sm:w-auto justify-start text-left font-normal" disabled={people.length === 0}>
                                     <span className="truncate flex-1">
                                     {item.consumers.length === 0
                                         ? "Bagi rata untuk semua"
@@ -551,6 +561,9 @@ export default function BillSplitter() {
                     <Separator />
                     <div className="space-y-2">
                         <h4 className="font-semibold">Total per Orang</h4>
+                        {people.length === 0 && (
+                            <p className="text-muted-foreground text-center text-sm">Tambahkan peserta untuk melihat totalnya.</p>
+                        )}
                         {people.map((person) => (
                         <div key={person} className="flex justify-between">
                             <span className="text-muted-foreground">{person}</span>
@@ -560,7 +573,7 @@ export default function BillSplitter() {
                     </div>
                 </CardContent>
                 <CardFooter className="flex-col gap-2">
-                    <Button onClick={() => setShowSummaryModal(true)} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                    <Button onClick={() => setShowSummaryModal(true)} className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={people.length === 0 || items.length === 0}>
                         Lihat Ringkasan Pembagian
                     </Button>
                 </CardFooter>
@@ -600,9 +613,9 @@ export default function BillSplitter() {
                             </div>
                             <Separator className="my-2 bg-gray-200" />
                             <div className="space-y-1 text-sm">
-                                {personItems[person].map((item, index) => (
+                                {personItems[person] && personItems[person].map((item, index) => (
                                 <div key={index} className="flex justify-between">
-                                    <span className="text-gray-600">{item.name}</span>
+                                    <span className="text-gray-600 truncate pr-2 flex-1">{item.name}</span>
                                     <span className="text-gray-800">{item.price.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
                                 </div>
                                 ))}
