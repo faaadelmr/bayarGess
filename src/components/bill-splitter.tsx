@@ -63,7 +63,8 @@ type DiscountType = 'fixed' | 'percentage';
 
 // Helper function for fuzzy matching item names
 const normalizeItemName = (name: string) => {
-    return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    // Converts to lowercase, removes content in parentheses, and removes non-alphanumeric characters
+    return name.toLowerCase().replace(/\(.*?\)/g, '').replace(/[^a-z0-9]/g, '');
 };
 
 
@@ -253,14 +254,24 @@ export default function BillSplitter() {
         assignments.forEach(assignment => {
             assignment.items.forEach(itemNameFromText => {
                 const normalizedItemName = normalizeItemName(itemNameFromText);
-                const matchedItemId = itemMap.get(normalizedItemName);
+                
+                // Find the best match
+                let matchedItemId = itemMap.get(normalizedItemName);
+                if (!matchedItemId) {
+                    for (const [receiptItemName, receiptItemId] of itemMap.entries()) {
+                         if (receiptItemName.includes(normalizedItemName) || normalizedItemName.includes(receiptItemName)) {
+                            matchedItemId = receiptItemId;
+                            break;
+                        }
+                    }
+                }
 
                 if (matchedItemId) {
                     const itemIndex = updatedItems.findIndex(i => i.id === matchedItemId);
                     if (itemIndex !== -1) {
                         const person = assignment.person;
                         const currentConsumers = updatedItems[itemIndex].consumers;
-                        if (!currentConsumers.includes(person)) {
+                        if (allPeopleSet.has(person) && !currentConsumers.includes(person)) {
                             updatedItems[itemIndex].consumers = [...currentConsumers, person];
                             assignmentsCount++;
                         }
