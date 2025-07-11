@@ -160,4 +160,3 @@ const analyzeReceiptImageFlow = ai.defineFlow(
     return output!;
   }
 );
-
