@@ -42,7 +42,7 @@ const prompt = ai.definePrompt({
   output: {schema: AnalyzeReceiptImageOutputSchema},
   prompt: `You are an expert receipt analyzer. You will extract the items and their prices from the receipt image.
   
-  For each item on the receipt, identify the item name and its price. Ensure the price is a numeric value without any commas.
+  For each item on the receipt, identify the item name and its price. The prices on the receipt may use dots (.) as thousand separators (e.g., '65.910' means 65910). Please remove any dots or commas before converting the price to a numeric value. Ensure the price is a numeric value.
 
   Return a JSON object with a single key "items". The value of "items" should be an array of objects, where each object represents an item from the receipt and has two keys: "name" (a string) and "price" (a number).
 
