@@ -496,8 +496,6 @@ export default function BillSplitter() {
                             onChange={(e) => setTaxPercent(parseFloat(e.target.value) || 0)}
                             min="0"
                         />
-                        {/* Add the percentage sign visually */}
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
                     </div>
 
                     <div className="space-y-2">
