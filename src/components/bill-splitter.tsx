@@ -405,82 +405,82 @@ export default function BillSplitter() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
       <div className="lg:col-span-2 space-y-8">
+        
         {items.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                <Users className="text-primary" />
-                Peserta
-                </CardTitle>
-                <CardDescription>
-                Tambahkan semua orang yang terlibat dalam tagihan ini.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="grid gap-4">
-                {people.length === 0 && (
-                    <p className="text-muted-foreground text-center py-4">Belum ada peserta.</p>
-                )}
-                {people.map((person) => (
-                    <div
-                    key={person}
-                    className="flex items-center justify-between"
-                    >
-                    <p className="font-medium">{person}</p>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeletePerson(person)}
-                    >
-                        <Trash2 className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                    </div>
-                ))}
-                </div>
-            </CardContent>
-            <CardFooter className="flex gap-2">
-                <Input
-                placeholder="Tambahkan nama teman"
-                value={newPersonName}
-                onChange={(e) => setNewPersonName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAddPerson()}
-                />
-                <Button onClick={handleAddPerson} aria-label="Tambah Orang">
-                <Plus />
-                </Button>
-            </CardFooter>
-            </Card>
-        )}
-
-        {items.length > 0 && (
-          <Card>
               <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                      <ClipboardSignature className="text-primary" />
-                      Analisis Pesanan dari Teks
+                  <Users className="text-primary" />
+                  Peserta
                   </CardTitle>
                   <CardDescription>
-                      Tempel daftar pesanan di sini. AI akan otomatis menambahkan peserta dan menetapkan itemnya.
+                  Tambahkan semua orang yang terlibat dalam tagihan ini.
                   </CardDescription>
               </CardHeader>
               <CardContent>
-                  <Textarea
-                      placeholder={`Contoh:\n1. Budi: Nasi Goreng, Es Teh\n2. Ani: Mie Ayam`}
-                      value={assignmentText}
-                      onChange={(e) => setAssignmentText(e.target.value)}
-                      rows={6}
-                      disabled={isAnalyzingText}
-                  />
+                  <div className="grid gap-4">
+                  {people.length === 0 && (
+                      <p className="text-muted-foreground text-center py-4">Belum ada peserta.</p>
+                  )}
+                  {people.map((person) => (
+                      <div
+                      key={person}
+                      className="flex items-center justify-between"
+                      >
+                      <p className="font-medium">{person}</p>
+                      <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeletePerson(person)}
+                      >
+                          <Trash2 className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                      </div>
+                  ))}
+                  </div>
               </CardContent>
-              <CardFooter>
-                  <Button onClick={handleAnalyzeText} disabled={isAnalyzingText} className="w-full">
-                      {isAnalyzingText ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                      Analisis Teks
+              <CardFooter className="flex gap-2">
+                  <Input
+                  placeholder="Tambahkan nama teman"
+                  value={newPersonName}
+                  onChange={(e) => setNewPersonName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddPerson()}
+                  />
+                  <Button onClick={handleAddPerson} aria-label="Tambah Orang">
+                  <Plus />
                   </Button>
               </CardFooter>
-          </Card>
-        )}
+            </Card>
 
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <ClipboardSignature className="text-primary" />
+                        Analisis Pesanan dari Teks
+                    </CardTitle>
+                    <CardDescription>
+                        Tempel daftar pesanan di sini untuk penetapan item otomatis.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Textarea
+                        placeholder={`Contoh:\n1. Budi: Nasi Goreng, Es Teh\n2. Ani: Mie Ayam`}
+                        value={assignmentText}
+                        onChange={(e) => setAssignmentText(e.target.value)}
+                        rows={6}
+                        disabled={isAnalyzingText}
+                    />
+                </CardContent>
+                <CardFooter>
+                    <Button onClick={handleAnalyzeText} disabled={isAnalyzingText} className="w-full">
+                        {isAnalyzingText ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        Analisis Teks
+                    </Button>
+                </CardFooter>
+            </Card>
+          </div>
+        )}
 
         <Card>
           <CardHeader>
@@ -806,3 +806,5 @@ export default function BillSplitter() {
     </div>
   );
 }
+
+    
