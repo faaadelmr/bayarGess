@@ -12,6 +12,7 @@ import {
   Loader2,
   ChevronDown,
   Download,
+  ClipboardSignature,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,8 +45,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import Image from 'next/image';
 import { analyzeReceiptImage } from "@/ai/flows/analyze-receipt-image";
+import { analyzeTextForSplits } from "@/ai/flows/analyze-text-for-splits";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toJpeg } from 'html-to-image';
+import { Textarea } from "@/components/ui/textarea";
 
 
 type Item = {
@@ -72,6 +75,8 @@ export default function BillSplitter() {
   const [maxDiscount, setMaxDiscount] = useState(0);
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isAnalyzingText, setIsAnalyzingText] = useState(false);
+  const [assignmentText, setAssignmentText] = useState("");
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const summaryRef = useRef<HTMLDivElement>(null);
 
@@ -168,7 +173,7 @@ export default function BillSplitter() {
       reader.onload = async () => {
         const base64 = reader.result as string;
         try {
-            const { items: extractedItems, tax, additionalCharges: extractedCharges, shippingCost: extractedShipping } = await analyzeReceiptImage({ receiptDataUri: base64 });
+            const { items: extractedItems, tax, additionalCharges: extractedCharges, shippingCost: extractedShipping, discount: extractedDiscount } = await analyzeReceiptImage({ receiptDataUri: base64 });
             const newItems: Item[] = extractedItems.map(item => ({...item, id: crypto.randomUUID(), consumers: [] }));
             setItems(prev => [...prev, ...newItems]);
             
@@ -184,6 +189,11 @@ export default function BillSplitter() {
             if (extractedShipping) {
                 setShippingCost(extractedShipping);
                 toastDescription += ` Ongkos kirim terdeteksi.`;
+            }
+            if(extractedDiscount) {
+                setDiscountValue(extractedDiscount);
+                setDiscountType('fixed');
+                toastDescription += ` Diskon terdeteksi.`;
             }
 
             toast({
@@ -209,6 +219,76 @@ export default function BillSplitter() {
         setIsAnalyzing(false);
     }
   };
+
+  const handleAnalyzeText = async () => {
+    if (!assignmentText.trim()) {
+      toast({ variant: "destructive", title: "Teks Kosong", description: "Harap masukkan teks untuk dianalisis." });
+      return;
+    }
+    setIsAnalyzingText(true);
+    try {
+      const { people: extractedPeople, assignments } = await analyzeTextForSplits({ prompt: assignmentText });
+
+      // Add new people
+      const currentPeople = new Set(people);
+      const allPeopleSet = new Set([...people, ...extractedPeople]);
+      const newPeople = Array.from(allPeopleSet);
+      setPeople(newPeople);
+
+      // Create a map of existing items for quick lookup
+      const itemMap = new Map(items.map(item => [item.name.toLowerCase().trim(), item]));
+
+      // Update consumers for existing items and collect new items to be added
+      const newItemsFromText: { [key: string]: string[] } = {};
+
+      assignments.forEach(assignment => {
+        assignment.items.forEach(itemName => {
+          const lowerItemName = itemName.toLowerCase().trim();
+          const existingItem = itemMap.get(lowerItemName);
+          if (existingItem) {
+            // Add consumer to existing item if not already present
+            if (!existingItem.consumers.includes(assignment.person)) {
+              existingItem.consumers.push(assignment.person);
+            }
+          } else {
+            // Collect new item to be added later
+            if (!newItemsFromText[itemName]) {
+              newItemsFromText[itemName] = [];
+            }
+            if (!newItemsFromText[itemName].includes(assignment.person)) {
+              newItemsFromText[itemName].push(assignment.person);
+            }
+          }
+        });
+      });
+
+      // Create new item objects for those not found in existing items
+      const itemsToAdd: Item[] = Object.entries(newItemsFromText).map(([name, consumers]) => ({
+        id: crypto.randomUUID(),
+        name: name,
+        price: 0,
+        consumers: consumers,
+      }));
+
+      // Update the state
+      setItems([...items.map(item => itemMap.get(item.name.toLowerCase().trim()) || item), ...itemsToAdd]);
+
+      toast({
+        title: "Analisis Teks Berhasil",
+        description: `${extractedPeople.length} peserta dan penetapan item telah diperbarui.`,
+      });
+
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Kesalahan AI",
+        description: "Gagal menganalisis teks. Periksa formatnya.",
+      });
+    } finally {
+      setIsAnalyzingText(false);
+    }
+  };
+
 
   const handleSaveSummary = async () => {
     if (!summaryRef.current) {
@@ -362,6 +442,34 @@ export default function BillSplitter() {
         </Card>
 
         <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <ClipboardSignature className="text-primary" />
+                    Analisis Pesanan dari Teks
+                </CardTitle>
+                <CardDescription>
+                    Tempel daftar pesanan di sini. AI akan otomatis menambahkan peserta dan menetapkan itemnya.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Textarea
+                    placeholder={`Contoh:\n1. Budi: Nasi Goreng, Es Teh\n2. Ani: Mie Ayam`}
+                    value={assignmentText}
+                    onChange={(e) => setAssignmentText(e.target.value)}
+                    rows={6}
+                    disabled={isAnalyzingText}
+                />
+            </CardContent>
+            <CardFooter>
+                <Button onClick={handleAnalyzeText} disabled={isAnalyzingText} className="w-full">
+                    {isAnalyzingText ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                    Analisis Teks
+                </Button>
+            </CardFooter>
+        </Card>
+
+
+        <Card>
           <CardHeader>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
@@ -375,9 +483,9 @@ export default function BillSplitter() {
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
                     <Button asChild variant="outline" className="flex-1">
-                      <Label>
+                      <Label className="cursor-pointer">
                         {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                        Unggah
+                        Unggah Struk
                         <Input type="file" accept="image/*" className="sr-only" onChange={handleFileChange} disabled={isAnalyzing}/>
                       </Label>
                     </Button>
@@ -411,24 +519,21 @@ export default function BillSplitter() {
                             }
                             className="flex-grow"
                         />
-                       <div className="relative w-full sm:w-28">
- <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">Rp</span>
+                       <div className="relative w-full sm:w-40">
+                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">Rp</span>
                         <Input
-                            type="text" // Changed to text for formatting
+                            type="text" 
                             placeholder="Harga"
-                            value={(item.price || 0).toLocaleString('id-ID')} // Formatted for display
+                            value={(item.price || 0).toLocaleString('id-ID')}
                             onChange={(e) =>
                             handleUpdateItem(
                                 item.id,
                                 "price",
-                                    parseFloat(e.target.value.replace(/\D/g, '')) || 0 // Parse numeric part
+                                    parseFloat(e.target.value.replace(/\D/g, '')) || 0
                             )
                             }
-                            className="w-full sm:w-28 pl-8"
-                            min="0"
-                            step="0.01"
+                            className="w-full pl-8 text-right"
                         />
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">Rp</span>
                         </div>
                         <Popover>
                             <PopoverTrigger asChild>
@@ -488,7 +593,7 @@ export default function BillSplitter() {
                     <div className="space-y-2">
                         <Label htmlFor="tax">Pajak (%)</Label>
                         <Input
-                            className="pr-8" // Add padding to the right for the percentage sign
+                            className="pr-8"
                             id="tax"
                             type="number"
                             placeholder="Contoh : 11%"
@@ -508,8 +613,8 @@ export default function BillSplitter() {
                         </Tabs>
                         <Input
                             type="text"
-                            placeholder="Contoh: 10.000 atau 25%"
-                            value={discountValue.toLocaleString('id-ID')}
+                            placeholder="Contoh: 10.000 atau 25"
+                            value={(discountValue || 0).toLocaleString('id-ID')}
                             onChange={(e) => setDiscountValue(parseFloat(e.target.value.replace(/\D/g, '')) || 0)}
                             min="0"
                         />
@@ -520,7 +625,7 @@ export default function BillSplitter() {
                                     id="max-discount"
                                     type="text"
                                     placeholder="Contoh: 25.000"
-                                    value={maxDiscount.toLocaleString('id-ID')}
+                                    value={(maxDiscount || 0).toLocaleString('id-ID')}
                                     onChange={(e) => setMaxDiscount(parseFloat(e.target.value.replace(/\D/g, '')) || 0)}
                                     min="0"
                                 />
@@ -532,10 +637,10 @@ export default function BillSplitter() {
                         <Label htmlFor="additional-charges">Biaya Tambahan</Label>
                         <Input
                             id="additional-charges"
-                            type="text" // Changed to text
+                            type="text"
                             placeholder="0"
-                            value={additionalCharges.toLocaleString('id-ID')} // Formatted for display
-                            onChange={(e) => setAdditionalCharges(parseFloat(e.target.value.replace(/\D/g, '')) || 0)} // Parse numeric part
+                            value={(additionalCharges || 0).toLocaleString('id-ID')}
+                            onChange={(e) => setAdditionalCharges(parseFloat(e.target.value.replace(/\D/g, '')) || 0)}
                              min="0"
                         />
                     </div>
@@ -545,7 +650,7 @@ export default function BillSplitter() {
                             id="shipping-cost"
                             type="text"
                             placeholder="0"
-                            value={shippingCost.toLocaleString('id-ID')}
+                            value={(shippingCost || 0).toLocaleString('id-ID')}
                             onChange={(e) => setShippingCost(parseFloat(e.target.value.replace(/\D/g, '')) || 0)}
                             min="0"
                         />
@@ -632,6 +737,15 @@ export default function BillSplitter() {
                                     <span className="text-gray-800">{item.price.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
                                 </div>
                                 ))}
+                                {(totals.taxAmount > 0) && (
+                                     <>
+                                    <Separator className="my-1 bg-gray-200" />
+                                     <div className="flex justify-between">
+                                         <span className="text-gray-600">Pajak</span>
+                                         <span className="text-gray-800">{(totals.individualTotals[person] > 0 ? (totals.taxAmount / people.length) : 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                                     </div>
+                                     </>
+                                )}
                                 {(totals.personDiscounts[person] > 0) && (
                                     <>
                                     <Separator className="my-1 bg-gray-200" />
