@@ -168,12 +168,27 @@ export default function BillSplitter() {
       reader.onload = async () => {
         const base64 = reader.result as string;
         try {
-            const { items: extractedItems } = await analyzeReceiptImage({ receiptDataUri: base64 });
+            const { items: extractedItems, tax, additionalCharges: extractedCharges, shippingCost: extractedShipping } = await analyzeReceiptImage({ receiptDataUri: base64 });
             const newItems: Item[] = extractedItems.map(item => ({...item, id: crypto.randomUUID(), consumers: [] }));
             setItems(prev => [...prev, ...newItems]);
+            
+            let toastDescription = `${newItems.length} item telah ditambahkan.`;
+            if (tax) {
+                setTaxPercent(tax);
+                toastDescription += ` Pajak (${tax}%) terdeteksi.`;
+            }
+            if (extractedCharges) {
+                setAdditionalCharges(extractedCharges);
+                toastDescription += ` Biaya tambahan terdeteksi.`;
+            }
+            if (extractedShipping) {
+                setShippingCost(extractedShipping);
+                toastDescription += ` Ongkos kirim terdeteksi.`;
+            }
+
             toast({
                 title: "Struk Dianalisis",
-                description: `${newItems.length} item telah ditambahkan ke tagihan Anda.`,
+                description: toastDescription,
             });
         } catch (error) {
              toast({
