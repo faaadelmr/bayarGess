@@ -30,7 +30,7 @@ const AnalyzeReceiptImageOutputSchema = z.object({
       })
     )
     .describe('The list of items and prices extracted from the receipt.'),
-  tax: z.number().optional().describe('The total tax amount or percentage. If it is a percentage (e.g., 11%), return the number 11. If it is a fixed amount, return the amount.'),
+  tax: z.number().optional().describe('The total tax amount or percentage. If it is a percentage (e.g., 11%), return the number 11. If it is a fixed amount, calculate the percentage based on the subtotal of all items and return that percentage value.'),
   additionalCharges: z.number().optional().describe('Any other additional charges or service fees found on the receipt.'),
   shippingCost: z.number().optional().describe('The shipping or delivery cost.'),
 });
@@ -51,7 +51,9 @@ const prompt = ai.definePrompt({
   For each item on the receipt, identify the item name and its price. Before converting the price to a numeric value, you MUST remove all dots (.). For example, '65.910' becomes 65910. Do not use commas.
 
   In addition to the items, you MUST also look for the following and extract their values:
-  1.  **Tax (Pajak)**: Look for terms like "Pajak", "PPN", "PB1". If the value is a percentage (e.g., 11%), extract the number only (11). If it's a fixed amount, extract the numeric value.
+  1.  **Tax (Pajak)**: Look for terms like "Pajak", "PPN", "PB1". 
+      - If the value is a percentage (e.g., 11%), extract the number only (11).
+      - If the value is a fixed amount, you MUST calculate the percentage based on the subtotal of all extracted items. For example, if subtotal is 100.000 and tax is 11.000, you should return 11.
   2.  **Additional Charges (Biaya Tambahan)**: Look for terms like "Service Charge", "Biaya Layanan", or other fees that are not tax or shipping. Extract the numeric value.
   3.  **Shipping Cost (Ongkos Kirim)**: Look for terms like "Ongkir", "Delivery Fee", "Biaya Pengiriman". Extract the numeric value.
 
