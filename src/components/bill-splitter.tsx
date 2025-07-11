@@ -641,7 +641,7 @@ export default function BillSplitter() {
                     </div>
                     <Separator className="bg-gray-300"/>
                     <div className="text-center text-xs text-gray-500 mt-4">
-                        Dibuat dengan <a href="https://bayargess.pages.dev" target="_blank" rel="noopener noreferrer" className="underline">bayargess.pages.dev</a>
+                        Dibuat dengan <a href="https://bayargess.vercel.app" target="_blank" rel="noopener noreferrer" className="underline">bayargess.vercel.app</a>
                     </div>
                 </div>
             </div>
