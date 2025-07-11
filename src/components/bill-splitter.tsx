@@ -346,8 +346,6 @@ export default function BillSplitter() {
                     </CardTitle>
                     <CardDescription>
                         Unggah struk atau tambahkan item secara manual.
-                        <br></br>
-                        <span className="text-xs	text-gray-400/70">NP:pastikan tidak ada tanda (,) koma pada penulisan harga</span>
                     </CardDescription>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
