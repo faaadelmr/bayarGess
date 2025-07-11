@@ -405,50 +405,52 @@ export default function BillSplitter() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
       <div className="lg:col-span-2 space-y-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="text-primary" />
-              Peserta
-            </CardTitle>
-            <CardDescription>
-              Tambahkan semua orang yang terlibat dalam tagihan ini.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4">
-              {people.length === 0 && (
-                <p className="text-muted-foreground text-center py-4">Belum ada peserta.</p>
-              )}
-              {people.map((person) => (
-                <div
-                  key={person}
-                  className="flex items-center justify-between"
-                >
-                  <p className="font-medium">{person}</p>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeletePerson(person)}
-                  >
-                    <Trash2 className="h-4 w-4 text-muted-foreground" />
-                  </Button>
+        {items.length > 0 && (
+            <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                <Users className="text-primary" />
+                Peserta
+                </CardTitle>
+                <CardDescription>
+                Tambahkan semua orang yang terlibat dalam tagihan ini.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="grid gap-4">
+                {people.length === 0 && (
+                    <p className="text-muted-foreground text-center py-4">Belum ada peserta.</p>
+                )}
+                {people.map((person) => (
+                    <div
+                    key={person}
+                    className="flex items-center justify-between"
+                    >
+                    <p className="font-medium">{person}</p>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeletePerson(person)}
+                    >
+                        <Trash2 className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                    </div>
+                ))}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-          <CardFooter className="flex gap-2">
-            <Input
-              placeholder="Tambahkan nama teman"
-              value={newPersonName}
-              onChange={(e) => setNewPersonName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAddPerson()}
-            />
-            <Button onClick={handleAddPerson} aria-label="Tambah Orang">
-              <Plus />
-            </Button>
-          </CardFooter>
-        </Card>
+            </CardContent>
+            <CardFooter className="flex gap-2">
+                <Input
+                placeholder="Tambahkan nama teman"
+                value={newPersonName}
+                onChange={(e) => setNewPersonName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddPerson()}
+                />
+                <Button onClick={handleAddPerson} aria-label="Tambah Orang">
+                <Plus />
+                </Button>
+            </CardFooter>
+            </Card>
+        )}
 
         {items.length > 0 && (
           <Card>
