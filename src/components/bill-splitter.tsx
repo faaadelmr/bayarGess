@@ -458,10 +458,11 @@ export default function BillSplitter() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <ClipboardSignature className="text-primary" />
-                        Analisis Pesanan dari Teks
+                        AI Peserta:Item
                     </CardTitle>
                     <CardDescription>
-                        Tempel daftar pesanan di sini untuk penetapan item otomatis.
+                        Form ini akan membuat daftar nama peserta dari teks, lalu membagi mereka ke item pesanan yang tersedia secara otomatis. <br />
+                       <span className="text-xs text-gray-500"> NP: </span><span className="text-xs italic text-gray-500"> Pastikan penulisan item pada form anda sama dengan daftar item tagihan yang telah dibuat. Dan cek kembali pembagian itemnya apakah sudah sesuai.</span>
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -489,7 +490,7 @@ export default function BillSplitter() {
                 <div>
                     <CardTitle className="flex items-center gap-2">
                         <ReceiptText className="text-primary" />
-                        Item Tagihan
+                        Daftar Tagihan
                     </CardTitle>
                     <CardDescription>
                         Unggah struk atau tambahkan item secara manual.
