@@ -359,12 +359,16 @@ export default function BillSplitter() {
     });
 
     const individualTotals: Record<Person, number> = {};
+    const personTaxes: Record<Person, number> = {};
     const personDiscounts: Record<Person, number> = {};
+
     people.forEach((person) => {
         const pSubtotal = personSubtotals[person] || 0;
         const proportion = subtotal > 0 ? pSubtotal / subtotal : (people.length > 0 ? 1 / people.length : 0);
 
-        const personTax = totalTaxAmount * proportion;
+        const personTax = pSubtotal * (Number(taxPercent) || 0) / 100;
+        personTaxes[person] = personTax;
+
         const personDiscount = totalDiscountAmount * proportion;
         personDiscounts[person] = personDiscount;
 
@@ -380,6 +384,7 @@ export default function BillSplitter() {
         taxAmount: totalTaxAmount, 
         discountAmount: totalDiscountAmount,
         personShareOfOtherCosts,
+        personTaxes,
         personDiscounts,
     };
   }, [items, people, taxPercent, additionalCharges, shippingCost, discountType, discountValue, maxDiscount]);
@@ -750,16 +755,16 @@ export default function BillSplitter() {
                                     <span className="text-gray-800">{item.price.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
                                 </div>
                                 ))}
-                                {(totals.taxAmount > 0) && (
+                                {totals.personTaxes[person] > 0 && (
                                      <>
                                     <Separator className="my-1 bg-gray-200" />
                                      <div className="flex justify-between">
                                          <span className="text-gray-600">Pajak</span>
-                                         <span className="text-gray-800">{(totals.individualTotals[person] > 0 ? (totals.taxAmount / people.length) : 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                                         <span className="text-gray-800">{totals.personTaxes[person].toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
                                      </div>
                                      </>
                                 )}
-                                {(totals.personDiscounts[person] > 0) && (
+                                {totals.personDiscounts[person] > 0 && (
                                     <>
                                     <Separator className="my-1 bg-gray-200" />
                                     <div className="flex justify-between">
@@ -806,5 +811,3 @@ export default function BillSplitter() {
     </div>
   );
 }
-
-    
