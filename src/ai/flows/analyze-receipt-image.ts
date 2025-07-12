@@ -50,25 +50,28 @@ const prompt = ai.definePrompt({
 **General Rules:**
 1.  **Item Extraction**:
     - Identify individual items and their prices.
-    - If an item has a quantity (e.g., "2 x Nasi" or "5 MIE GOYANG"), extract the item name and its total price for that line. Do not multiply the price by the quantity yourself; the price shown is already the total.
-    - Ignore any crossed-out prices.
+    - If an item has a quantity (e.g., "2 x Nasi" or "5 MIE GOYANG"), extract the item name and its total price for that line. The price shown is already the total, do not multiply it by the quantity.
+    - Ignore any crossed-out prices. Focus on the final price.
 2.  **Price Formatting**:
     - Prices in the receipt use dots as thousand separators (e.g., '36.000' means 36000). Remove all dots and commas before converting to a number.
 3.  **Tax**:
-    - **Crucial**: If the receipt anywhere mentions "Termasuk Pajak", "Sudah termasuk pajak", or similar phrases, you MUST NOT extract a separate tax value. The 'tax' field should be omitted.
+    - **Crucial Rule**: If the receipt anywhere mentions "Termasuk Pajak", "Sudah termasuk pajak", or similar phrases, you MUST NOT extract a separate tax value. The 'tax' field must be omitted, even if there is a line showing "PPN" or "PB1".
     - Only extract tax if explicitly mentioned as "Pajak", "PPN", or "PB1" AND the receipt does not state that tax is already included.
     - If tax is a fixed amount (like PB1), calculate its percentage based on the item subtotal.
 4.  **Discount**:
     - Look for ALL lines containing "Diskon" or "Voucher".
-    - Sum the absolute values of all discounts found. For example, if a discount is shown as "-20.000", use 20000. If there are multiple discounts, add them up.
+    - Sum the absolute values of all discounts found. For example, if a discount is shown as "-20.000", use 20000. If there are multiple discount lines, add their absolute values together.
+5.  **Output Format**:
+    - Return a single JSON object.
+    - Only include optional fields ('tax', 'additionalCharges', 'shippingCost', 'discount') if they are present and have a value greater than zero on the receipt.
 
 **Platform-Specific Rules:**
 
 ---
 
-**GoFood / GrabFood Receipts:**
+**GoFood Receipts:**
 - **Items**: Items are usually listed under a "Pembelian" or "Ringkasan Pesanan" section. The line "Harga" or "Subtotal" is the subtotal of these items, do NOT treat it as an item itself.
-- **Biaya Tambahan (additionalCharges)**: Find terms like "Biaya lainnya", "Biaya pemesanan", "Biaya kemasan", "Service Charge". Sum up their values.
+- **Biaya Tambahan (additionalCharges)**: Find terms like "Biaya lainnya", "Biaya pemesanan", "Biaya kemasan". Sum up their values.
 - **Ongkos Kirim (shippingCost)**: Find terms like "Ongkir", "Delivery Fee", "Biaya Penanganan dan Pengiriman".
 
 **Example Walkthrough (GoFood):**
@@ -90,6 +93,13 @@ Your output MUST be:
   "additionalCharges": 2000,
   "discount": 20000
 }
+---
+
+**GrabFood Receipts:**
+- **Items**: Items are listed with their quantities and prices.
+- **Biaya Tambahan (additionalCharges)**: Look for "Biaya pemesanan" and "Biaya kemasan". Sum their values together for the final \`additionalCharges\`.
+- **Ongkos Kirim (shippingCost)**: This is labeled as "Ongkos kirim".
+- **Diskon (discount)**: There can be multiple "Diskon" lines. Sum the absolute value of all of them.
 
 **Example Walkthrough (GrabFood):**
 If you see:
@@ -110,7 +120,6 @@ Your output MUST be:
   "additionalCharges": 3500,
   "discount": 28200
 }
-
 ---
 
 **ShopeeFood Receipts:**
@@ -143,7 +152,7 @@ Your output MUST be:
 ---
 
 **Dine-in / Other Receipts:**
-- These receipts might have "PB1" which should be treated as 'tax'.
+- These receipts might have "PB1" which should be treated as 'tax'. Remember the crucial tax rule: if "sudah termasuk pajak" is written, ignore PB1.
 - They usually do not have 'shippingCost' or 'additionalCharges'. Only extract them if explicitly present.
 
 **Example Walkthrough (Dine-in):**
@@ -164,9 +173,7 @@ Your output MUST be:
 }
 ---
 
-**Final Output Format:**
-Return a single JSON object. Only include optional fields ('tax', 'additionalCharges', 'shippingCost', 'discount') if they are present and have a value greater than zero on the receipt.
-
+Now, analyze the provided receipt image.
 Receipt Image: {{media url=receiptDataUri}}
   `,
 });
