@@ -55,12 +55,12 @@ const prompt = ai.definePrompt({
 2.  **Price Formatting**:
     - Prices in the receipt use dots as thousand separators (e.g., '36.000' means 36000). Remove all dots and commas before converting to a number.
 3.  **Tax**:
-    - Only extract tax if explicitly mentioned as "Pajak", "PPN", or "PB1".
-    - If the subtotal line says "Termasuk Pajak" or similar, do NOT extract a separate tax value.
+    - **Crucial**: If the receipt anywhere mentions "Termasuk Pajak", "Sudah termasuk pajak", or similar phrases, you MUST NOT extract a separate tax value. The 'tax' field should be omitted.
+    - Only extract tax if explicitly mentioned as "Pajak", "PPN", or "PB1" AND the receipt does not state that tax is already included.
     - If tax is a fixed amount (like PB1), calculate its percentage based on the item subtotal.
 4.  **Discount**:
     - Look for ALL lines containing "Diskon" or "Voucher".
-    - Sum the absolute values of all discounts found. For example, if a discount is shown as "-20.000", use 20000.
+    - Sum the absolute values of all discounts found. For example, if a discount is shown as "-20.000", use 20000. If there are multiple discounts, add them up.
 
 **Platform-Specific Rules:**
 
