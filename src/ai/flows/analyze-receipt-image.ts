@@ -142,6 +142,28 @@ Your output MUST be:
 }
 ---
 
+**Dine-in / Other Receipts:**
+- These receipts might have "PB1" which should be treated as 'tax'.
+- They usually do not have 'shippingCost' or 'additionalCharges'. Only extract them if explicitly present.
+
+**Example Walkthrough (Dine-in):**
+If you see:
+- HIP & ROLL ... 10.000
+- MIE GOYANG LV 1 ... 13.000
+- Subtotal ... 23.000
+- PB1 (10%) ... 2.300
+- Total ... 25.300
+
+Your output MUST be:
+{
+  "items": [
+    { "name": "HIP & ROLL", "price": 10000 },
+    { "name": "MIE GOYANG LV 1", "price": 13000 }
+  ],
+  "tax": 10
+}
+---
+
 **Final Output Format:**
 Return a single JSON object. Only include optional fields ('tax', 'additionalCharges', 'shippingCost', 'discount') if they are present and have a value greater than zero on the receipt.
 
