@@ -13,6 +13,7 @@ import {
   ChevronDown,
   Download,
   ClipboardSignature,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +50,7 @@ import { analyzeTextForSplits } from "@/ai/flows/analyze-text-for-splits";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toJpeg } from 'html-to-image';
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 
 
 type Item = {
@@ -424,24 +426,18 @@ export default function BillSplitter() {
                   </CardDescription>
               </CardHeader>
               <CardContent>
-                  <div className="grid gap-4">
+                  <div className="flex flex-wrap gap-2">
                   {people.length === 0 && (
-                      <p className="text-muted-foreground text-center py-4">Belum ada peserta.</p>
+                      <p className="text-muted-foreground text-center py-4 w-full">Belum ada peserta.</p>
                   )}
                   {people.map((person) => (
-                      <div
-                      key={person}
-                      className="flex items-center justify-between"
-                      >
-                      <p className="font-medium">{person}</p>
-                      <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeletePerson(person)}
-                      >
-                          <Trash2 className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                      </div>
+                      <Badge key={person} variant="secondary" className="flex items-center gap-2 text-base py-1 pl-3 pr-1">
+                        <span>{person}</span>
+                        <button onClick={() => handleDeletePerson(person)} className="rounded-full hover:bg-muted-foreground/20 p-0.5">
+                            <X className="h-3 w-3" />
+                            <span className="sr-only">Hapus {person}</span>
+                        </button>
+                      </Badge>
                   ))}
                   </div>
               </CardContent>
