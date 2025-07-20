@@ -8,10 +8,12 @@ export default function Home() {
     <div className="flex min-h-screen w-full flex-col bg-background">
       <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-8">
         <div className="flex items-center gap-2">
+        <a href="https://bayargess.vercel.app" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 no-underline text-foreground">
           <Logo />
-          <h1 className="text-2xl font-bold tracking-tight text-foreground font-headline">
+          <h1 className="text-2xl font-bold tracking-tight font-headline">
             bayarGess
           </h1>
+        </a>
         </div>
       </header>
       <main className="flex-1 p-4 md:p-8">

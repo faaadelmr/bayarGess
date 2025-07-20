@@ -317,7 +317,7 @@ export default function BillSplitter() {
             filter: filter,
         });
         const link = document.createElement('a');
-        link.download = 'ringkasan-tagihan.jpeg';
+        link.download = 'bayargess.jpeg';
         link.href = dataUrl;
         link.click();
         toast({ title: "Berhasil Disimpan", description: "Ringkasan tagihan telah diunduh." });
