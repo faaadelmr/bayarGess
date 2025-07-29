@@ -182,7 +182,7 @@ export default function BillSplitter() {
       reader.onload = async () => {
         const base64 = reader.result as string;
         try {
-            const { items: extractedItems, tax, additionalCharges: extractedCharges, shippingCost: extractedShipping, discount: extractedDiscount } = await analyzeReceiptImage({ receiptDataUri: base64 });
+            const { items: extractedItems, tax, additionalCharges: extractedCharges, shippingCost: extractedShipping, discountValue: extractedDiscount } = await analyzeReceiptImage({ receiptDataUri: base64 });
             const newItems: Item[] = extractedItems.map(item => ({...item, id: crypto.randomUUID(), consumers: [] }));
             setItems(prev => [...prev, ...newItems]);
             
@@ -201,7 +201,6 @@ export default function BillSplitter() {
             }
             if(extractedDiscount) {
                 setDiscountValue(extractedDiscount);
-                setDiscountType('fixed');
                 toastDescription += ` Diskon terdeteksi.`;
             }
 

@@ -31,9 +31,9 @@ const AnalyzeReceiptImageOutputSchema = z.object({
     )
     .describe('The list of items and prices extracted from the receipt.'),
   tax: z.number().optional().describe('The total tax amount or percentage. If it is a percentage (e.g., 11%), return the number 11. If it is a fixed amount, calculate the percentage based on the subtotal of all items and return that percentage value.'),
-  additionalCharges: z.number().optional().describe('Total additional charges. Look for terms like "Biaya lainnya", "Biaya pemesanan", "Biaya kemasan", "Service Charge". Sum up the values.'),
-  shippingCost: z.number().optional().describe('Look for terms like "Ongkir", "Delivery Fee", "Biaya Pengiriman", "Biaya Penanganan dan Pengiriman". Extract the numeric value'),
-  discount: z.number().optional().describe('The total discount amount. If multiple discounts are present, sum their absolute values.'),
+  additionalCharges: z.number().optional().describe('bertuliskan biaya pemesanan, biaya kemasan, jika ada 2 atau lebih maka jumlah kan saja.'),
+  shippingCost: z.number().optional().describe('bertuliskan "ongkos kirim", "biaya pengiriman", "biaya kirim".'),
+  discountValue: z.number().optional().describe('bertuliskan "diskon", "diskon tambahan", "diskon 15%" atau "diskon 20%". biasanya bertuliskan angka -Rp2000 atau yang lainnya. jika ada lebih jumlahkan'),
 });
 export type AnalyzeReceiptImageOutput = z.infer<typeof AnalyzeReceiptImageOutputSchema>;
 
@@ -45,133 +45,23 @@ const prompt = ai.definePrompt({
   name: 'analyzeReceiptImagePrompt',
   input: {schema: AnalyzeReceiptImageInputSchema},
   output: {schema: AnalyzeReceiptImageOutputSchema},
-  prompt: `You are an expert receipt analyzer. Your role is to extract structured data from a receipt image and return a valid JSON object. Follow these rules precisely.
+  prompt: `You are an expert receipt analyzer, Your role is to extract structured data from a receipt image and return a valid JSON object. Follow these below detail rules.
 
-**General Rules:**
-1.  **Item Extraction**:
-    - Identify individual items and their prices.
-    - If an item has a quantity (e.g., "2 x Nasi" or "5 MIE GOYANG"), extract the item name and its total price for that line. The price shown is already the total, do not multiply it by the quantity.
-    - Ignore any crossed-out prices. Focus on the final price.
-2.  **Price Formatting**:
-    - Prices in the receipt use dots as thousand separators (e.g., '36.000' means 36000). Remove all dots and commas before converting to a number.
-3.  **Tax**:
-    - **Crucial Rule**: If the receipt anywhere mentions "Termasuk Pajak", "Sudah termasuk pajak", or similar phrases, you MUST NOT extract a separate tax value. The 'tax' field must be omitted, even if there is a line showing "PPN" or "PB1".
+  rules:
+  
+  Prices in the receipt use dots as thousand separators (e.g., "36.000" means 36000). Remove all dots and commas before converting to a number. value set to number if "37.000" -> "37000"
+  Remove all non-digit characters from the price before converting to a number.
+  if there "diskon" so its discountType: ada jenis-jenis diskon yang diterapkan:Diskon tetap sebesar 2.000.Diskon persentase (15%) yang menghasilkan potongan 6.765. Total diskon yang harus dijumlahkan adalah 2.000 + 6.765 = 8.765.
+  
+  **Shipping Cost**:
+    - Only extract shipping cost if explicitly mentioned as "ongkos kirim", "biaya pengiriman", or "biaya kirim".
+    - **Crucial Rule**: If the receipt anywhere mentions "Termasuk Pajak", "Sudah termasuk pajak", or similar phrases, you MUST NOT extract a separate shippingCost value. The 'shippingCost' field must be omitted.
+
+  **Tax**:
+    - **Crucial Rule**: If the receipt anywhere mentions "Termasuk Pajak", "Sudah termasuk pajak", or similar phrases, you MUST NOT extract a separate tax value or shippingCost value. The 'tax' field must be omitted, even if there is a line showing "PPN" or "PB1".
     - Only extract tax if explicitly mentioned as "Pajak", "PPN", or "PB1" AND the receipt does not state that tax is already included.
     - If tax is a fixed amount (like PB1), calculate its percentage based on the item subtotal.
-4.  **Discount**:
-    - Look for ALL lines containing "Diskon" or "Voucher".
-    - Sum the absolute values of all discounts found. For example, if a discount is shown as "-20.000", use 20000. If there are multiple discount lines, add their absolute values together.
-5.  **Output Format**:
-    - Return a single JSON object.
-    - Only include optional fields ('tax', 'additionalCharges', 'shippingCost', 'discount') if they are present and have a value greater than zero on the receipt.
-
-**Platform-Specific Rules:**
-
----
-
-**GoFood Receipts:**
-- **Items**: Items are usually listed under a "Pembelian" or "Ringkasan Pesanan" section. The line "Harga" or "Subtotal" is the subtotal of these items, do NOT treat it as an item itself.
-- **Biaya Tambahan (additionalCharges)**: Find terms like "Biaya lainnya", "Biaya pemesanan", "Biaya kemasan". Sum up their values.
-- **Ongkos Kirim (shippingCost)**: Find terms like "Ongkir", "Delivery Fee", "Biaya Penanganan dan Pengiriman".
-
-**Example Walkthrough (GoFood):**
-If you see:
-- Pembelian
-  - Nasi Goreng 1 ... 36.000
-- Detail Pembayaran
-  - Harga: 36.000
-  - Biaya Penanganan dan Pengiriman: 19.500
-  - Biaya lainnya: 2.000
-  - Diskon: -20.000
-
-Your output MUST be:
-{
-  "items": [
-    { "name": "Nasi Goreng", "price": 36000 }
-  ],
-  "shippingCost": 19500,
-  "additionalCharges": 2000,
-  "discount": 20000
-}
----
-
-**GrabFood Receipts:**
-- **Items**: Items are listed with their quantities and prices.
-- **Biaya Tambahan (additionalCharges)**: Look for "Biaya pemesanan" and "Biaya kemasan". Sum their values together for the final \`additionalCharges\`.
-- **Ongkos Kirim (shippingCost)**: This is labeled as "Ongkos kirim".
-- **Diskon (discount)**: There can be multiple "Diskon" lines. Sum the absolute value of all of them.
-
-**Example Walkthrough (GrabFood):**
-If you see:
-- 2x Ala Carte Ayam ... 52.400
-- Subtotal: Rp52.400
-- Ongkos kirim: 2.000
-- Biaya pemesanan: 1.000
-- Biaya kemasan: 2.500
-- Diskon Rp2.000: -2.000
-- Diskon 50%: -26.200
-
-Your output MUST be:
-{
-  "items": [
-    { "name": "Ala Carte Ayam", "price": 52400 }
-  ],
-  "shippingCost": 2000,
-  "additionalCharges": 3500,
-  "discount": 28200
-}
----
-
-**ShopeeFood Receipts:**
-- **Items**: Items are listed with their prices. Sometimes there is a crossed-out price, which you must ignore.
-- **Biaya Tambahan (additionalCharges)**: This is usually labeled as "Biaya Layanan".
-- **Ongkos Kirim (shippingCost)**: This is usually labeled as "Biaya Pengiriman".
-- **Diskon (discount)**: This is usually labeled as "Voucher Diskon". It will have a negative value (e.g., -Rp19.200); take its absolute value (19200).
-
-**Example Walkthrough (ShopeeFood):**
-If you see:
-- 2 x Kukus Pandan ... 7.600 (Rp8.000 crossed out)
-- 2 x Goreng ... 7.600 (Rp8.000 crossed out)
-- 1 x Kukus Pandan ... 4.000
-- Biaya Pengiriman: 8.000
-- Biaya Layanan: 3.000
-- Voucher Diskon: -Rp19.200
-- Total Pembayaran ... (Sudah termasuk pajak)
-
-Your output MUST be:
-{
-  "items": [
-    { "name": "Kukus Pandan", "price": 7600 },
-    { "name": "Goreng", "price": 7600 },
-    { "name": "Kukus Pandan", "price": 4000 }
-  ],
-  "shippingCost": 8000,
-  "additionalCharges": 3000,
-  "discount": 19200
-}
----
-
-**Dine-in / Other Receipts:**
-- These receipts might have "PB1" which should be treated as 'tax'. Remember the crucial tax rule: if "sudah termasuk pajak" is written, ignore PB1.
-- They usually do not have 'shippingCost' or 'additionalCharges'. Only extract them if explicitly present.
-
-**Example Walkthrough (Dine-in):**
-If you see:
-- HIP & ROLL ... 10.000
-- MIE GOYANG LV 1 ... 13.000
-- Subtotal ... 23.000
-- PB1 (10%) ... 2.300
-- Total ... 25.300
-
-Your output MUST be:
-{
-  "items": [
-    { "name": "HIP & ROLL", "price": 10000 },
-    { "name": "MIE GOYANG LV 1", "price": 13000 }
-  ],
-  "tax": 10
-}
----
+    - If service charge (e.g., "service 5%") is present, calculate its percentage based on the item subtotal and add it to the calculated tax percentage. The final 'tax' value should be the sum of all tax and service charge percentages.
 
 Now, analyze the provided receipt image.
 Receipt Image: {{media url=receiptDataUri}}
