@@ -1,9 +1,71 @@
+"use client";
+
 import BillSplitter from '@/components/bill-splitter';
 import { Logo } from '@/components/logo';
 import logof from '../../public/breathing.png';
 import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { FileText, LifeBuoy } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
+  const [reportName, setReportName] = useState('');
+  const [reportProblem, setReportProblem] = useState('');
+  const [generatedReport, setGeneratedReport] = useState('');
+  const { toast } = useToast();
+
+  const [typedText, setTypedText] = useState('#Coba');
+  const words = ['AjaDulu', 'Lagi', 'AjaDulu', 'Mulai', 'AjaDulu', 'Berani', 'AjaDulu', 'Gagal', 'AjaDulu', 'Kawan'];
+
+  useEffect(() => {
+    let wordIndex = 0;
+    let isDeleting = false;
+    let currentWord = '';
+    let timeoutId: NodeJS.Timeout;
+
+    const type = () => {
+      const fullWord = words[wordIndex];
+      
+      if (isDeleting) {
+        currentWord = fullWord.substring(0, currentWord.length - 1);
+      } else {
+        currentWord = fullWord.substring(0, currentWord.length + 1);
+      }
+      
+      setTypedText(`#Coba${currentWord}`);
+      
+      let typeSpeed = isDeleting ? 100 : 150;
+
+      if (!isDeleting && currentWord === fullWord) {
+        typeSpeed = 1000; // Pause at end
+        isDeleting = true;
+      } else if (isDeleting && currentWord === '') {
+        isDeleting = false;
+        wordIndex = (wordIndex + 1) % words.length;
+        typeSpeed = 500; // Pause before new word
+      }
+
+      timeoutId = setTimeout(type, typeSpeed);
+    };
+
+    type();
+
+    return () => clearTimeout(timeoutId);
+  }, []);
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-8">
@@ -26,8 +88,9 @@ export default function Home() {
               <p className="text-xs text-base-content/80">
                 &copy; {new Date().getFullYear()}{" "}
                 <span className="font-medium text-red-600">bayarGess</span>. All rights
-                reserved.
+                reserved.<span className="animated-highlight-text text-black">{typedText}</span>
                         </p>
+                        
                     </div>
             <div className="flex items-center space-x-1 text-xs">
               <span className="text-base-content/70">Crafted with </span>
