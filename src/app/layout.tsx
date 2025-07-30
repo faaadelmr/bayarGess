@@ -14,7 +14,8 @@ export const metadata: Metadata = {
     siteName: 'BayarGess',
     images: [
       {
-        url: 'https://bayargess.vercel.app/og-image.png', 
+        url: 'https://bayargess.vercel.app/og-image.png',
+        width: 578,
         height: 826,
         alt: 'BayarGess - AI Split Bill',
       },
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'BayarGess | AI Splitbill Cerdas & Mudah',
-    description: 'Bagi tagihan makan jadi gampang! Upload struk, BayarGess akan hitung secara otomatis dan mudah pakai AI. Coba sekarang!',
+    description: 'Bagi tagihan makan jadi gampang! Upload struk, BayarGess akan hitung secara otomatis dan adil pakai AI. Coba sekarang!',
     images: ['https://bayargess.vercel.app/og-image.png'],
   },
 };
