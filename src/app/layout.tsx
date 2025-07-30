@@ -4,8 +4,8 @@ import { Toaster } from "@/components/ui/toaster"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
 export const metadata: Metadata = {
-  title: 'BayarGess',
-  description: 'Split tagihan dengan teman, menggunakan ai canggih untuk pembacaan tagihan nya.',
+  title: 'BayarGess | AI Splitbill by faaadelmr',
+  description: 'Kalo kamu abis makan-makan terus ribet bagi-bagiin tagihan ke temen2🙈 laknat!? pake app ini untuk mempermudah pembagian nya.',
 };
 
 export default function RootLayout({
