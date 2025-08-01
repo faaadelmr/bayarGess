@@ -14,6 +14,7 @@ import {
   Download,
   ClipboardSignature,
   X,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,7 +52,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toJpeg } from 'html-to-image';
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-
+import { Steps } from "intro.js-react";
 
 type Item = {
   id: string;
@@ -63,6 +64,11 @@ type Item = {
 type Person = string;
 type DiscountType = 'fixed' | 'percentage';
 
+interface BillSplitterProps {
+    tourEnabled: boolean;
+    onTourExit: () => void;
+}
+
 // Helper function for fuzzy matching item names
 const normalizeItemName = (name: string) => {
     // Converts to lowercase, removes content in parentheses, and removes non-alphanumeric characters
@@ -70,7 +76,7 @@ const normalizeItemName = (name: string) => {
 };
 
 
-export default function BillSplitter() {
+export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterProps) {
   const [people, setPeople] = useState<Person[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [taxPercent, setTaxPercent] = useState(0);
@@ -78,6 +84,7 @@ export default function BillSplitter() {
   const [shippingCost, setShippingCost] = useState(0);
   const [newPersonName, setNewPersonName] = useState("");
   const { toast } = useToast();
+  const [receiptDataUri, setReceiptDataUri] = useState<string | null>(null);
 
   const [discountType, setDiscountType] = useState<DiscountType>('fixed');
   const [discountValue, setDiscountValue] = useState(0);
@@ -89,6 +96,25 @@ export default function BillSplitter() {
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const summaryRef = useRef<HTMLDivElement>(null);
 
+
+  const tourSteps = [
+    {
+      element: '[data-intro-id="step-1-upload"]',
+      intro: '<b>Langkah 1: Tambah Item</b><br/><b>Opsi A (AI):</b> Unggah struk Anda di sini. AI kami akan otomatis memindai dan menambahkan semua item.<br/><b>Opsi B (Manual):</b> Klik "Tambah Item" untuk mengisi sendiri rincian tagihan dan nominalnya.',
+    },
+    {
+        element: '[data-intro-id="step-2-participants-card"]',
+        intro: '<b>Langkah 2: Tambah & Tugaskan Peserta</b><br/><b>Opsi A (AI):</b> Gunakan kartu "AI Peserta:Item" untuk mengisi daftar orang dan pembagian daftar pesanan dengan AI.<br/><b>Opsi B (Manual):</b> Tambahkan peserta di sini, lalu klik tombol "Bagi rata" pada daftar tagihan setiap item untuk memilih manual peserta tagihannya.',
+    },
+    {
+        element: '[data-intro-id="step-5-summary"]',
+        intro: '<b>Langkah 3: Ringkasan</b><br/>Cek dan Sesuaikan pajak, diskon, dan biaya lainnya di sini. Total tagihan dan rincian per orang akan diperbarui secara real-time.',
+    },
+    {
+      element: '[data-intro-id="step-6-finalize"]',
+      intro: '<b>Langkah 4: Finalisasi</b><br/>Setelah semuanya di cek, klik di sini untuk melihat ringkasan akhir yang rapi dan dapat Anda unduh untuk dibagikan ke teman-teman.',
+    },
+  ];
 
   const handleAddPerson = () => {
     if (newPersonName.trim() && !people.includes(newPersonName.trim())) {
@@ -181,6 +207,7 @@ export default function BillSplitter() {
       reader.readAsDataURL(file);
       reader.onload = async () => {
         const base64 = reader.result as string;
+        setReceiptDataUri(base64); // Save for reporting
         try {
             const { items: extractedItems, tax, additionalCharges: extractedCharges, shippingCost: extractedShipping, discountValue: extractedDiscount } = await analyzeReceiptImage({ receiptDataUri: base64 });
             const newItems: Item[] = extractedItems.map(item => ({...item, id: crypto.randomUUID(), consumers: [] }));
@@ -299,7 +326,6 @@ export default function BillSplitter() {
     }
 };
 
-
   const handleSaveSummary = async () => {
     if (!summaryRef.current) {
         toast({ variant: "destructive", title: "Gagal Menyimpan", description: "Tidak dapat menemukan konten ringkasan." });
@@ -410,80 +436,92 @@ export default function BillSplitter() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+       <Steps
+            enabled={tourEnabled}
+            steps={tourSteps}
+            initialStep={0}
+            onExit={onTourExit}
+            options={{
+                doneLabel: 'Selesai',
+                nextLabel: 'Lanjut',
+                prevLabel: 'Kembali',
+                skipLabel: 'Lewati',
+                tooltipClass: 'custom-tooltip-class',
+            }}
+        />
+
       <div className="lg:col-span-2 space-y-8">
         
-        {items.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8" data-intro-id="step-2-participants-card">
+          <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                <Users className="text-primary" />
+                Peserta
+                </CardTitle>
+                <CardDescription>
+                Tambahkan semua orang yang terlibat dalam tagihan ini.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex flex-wrap gap-2">
+                {people.length === 0 && (
+                    <p className="text-muted-foreground text-center py-4 w-full">Belum ada peserta.</p>
+                )}
+                {people.map((person) => (
+                    <Badge key={person} variant="secondary" className="flex items-center gap-2 text-base py-1 pl-3 pr-1">
+                      <span>{person}</span>
+                      <button onClick={() => handleDeletePerson(person)} className="rounded-full hover:bg-muted-foreground/20 p-0.5">
+                          <X className="h-3 w-3" />
+                          <span className="sr-only">Hapus {person}</span>
+                      </button>
+                    </Badge>
+                ))}
+                </div>
+            </CardContent>
+            <CardFooter className="flex gap-2">
+                <Input
+                placeholder="Tambahkan nama teman"
+                value={newPersonName}
+                onChange={(e) => setNewPersonName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddPerson()}
+                />
+                <Button onClick={handleAddPerson} aria-label="Tambah Orang">
+                <Plus />
+                </Button>
+            </CardFooter>
+          </Card>
+
+          <Card>
               <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                  <Users className="text-primary" />
-                  Peserta
+                      <ClipboardSignature className="text-primary" />
+                      AI Peserta:Item
                   </CardTitle>
                   <CardDescription>
-                  Tambahkan semua orang yang terlibat dalam tagihan ini.
+                      Form ini akan membuat daftar nama peserta dari teks, lalu membagi mereka ke item pesanan yang tersedia secara otomatis. <br />
+                     <span className="text-xs text-gray-500"> NP: </span><span className="text-xs italic text-gray-500"> Pastikan penulisan item pada form anda sama dengan daftar item tagihan yang telah dibuat. Dan cek kembali pembagian itemnya apakah sudah sesuai.</span>
                   </CardDescription>
               </CardHeader>
               <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                  {people.length === 0 && (
-                      <p className="text-muted-foreground text-center py-4 w-full">Belum ada peserta.</p>
-                  )}
-                  {people.map((person) => (
-                      <Badge key={person} variant="secondary" className="flex items-center gap-2 text-base py-1 pl-3 pr-1">
-                        <span>{person}</span>
-                        <button onClick={() => handleDeletePerson(person)} className="rounded-full hover:bg-muted-foreground/20 p-0.5">
-                            <X className="h-3 w-3" />
-                            <span className="sr-only">Hapus {person}</span>
-                        </button>
-                      </Badge>
-                  ))}
-                  </div>
-              </CardContent>
-              <CardFooter className="flex gap-2">
-                  <Input
-                  placeholder="Tambahkan nama teman"
-                  value={newPersonName}
-                  onChange={(e) => setNewPersonName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddPerson()}
+                  <Textarea
+                      placeholder={`Contoh:\n1. Budi: Nasi Goreng, Es Teh\n2. Ani: Mie Ayam`}
+                      value={assignmentText}
+                      onChange={(e) => setAssignmentText(e.target.value)}
+                      rows={6}
+                      disabled={isAnalyzingText}
                   />
-                  <Button onClick={handleAddPerson} aria-label="Tambah Orang">
-                  <Plus />
+              </CardContent>
+              <CardFooter>
+                  <Button onClick={handleAnalyzeText} disabled={isAnalyzingText} className="w-full">
+                      {isAnalyzingText ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                      Analisis Teks
                   </Button>
               </CardFooter>
-            </Card>
+          </Card>
+        </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <ClipboardSignature className="text-primary" />
-                        AI Peserta:Item
-                    </CardTitle>
-                    <CardDescription>
-                        Form ini akan membuat daftar nama peserta dari teks, lalu membagi mereka ke item pesanan yang tersedia secara otomatis. <br />
-                       <span className="text-xs text-gray-500"> NP: </span><span className="text-xs italic text-gray-500"> Pastikan penulisan item pada form anda sama dengan daftar item tagihan yang telah dibuat. Dan cek kembali pembagian itemnya apakah sudah sesuai.</span>
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Textarea
-                        placeholder={`Contoh:\n1. Budi: Nasi Goreng, Es Teh\n2. Ani: Mie Ayam`}
-                        value={assignmentText}
-                        onChange={(e) => setAssignmentText(e.target.value)}
-                        rows={6}
-                        disabled={isAnalyzingText}
-                    />
-                </CardContent>
-                <CardFooter>
-                    <Button onClick={handleAnalyzeText} disabled={isAnalyzingText} className="w-full">
-                        {isAnalyzingText ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                        Analisis Teks
-                    </Button>
-                </CardFooter>
-            </Card>
-          </div>
-        )}
-
-        <Card>
+        <Card data-intro-id="step-1-upload">
           <CardHeader>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
@@ -524,7 +562,7 @@ export default function BillSplitter() {
                     </div>
                 )}
                 {items.map((item, index) => (
-                    <div key={item.id} className="flex flex-col sm:flex-row items-center gap-2 transition-all duration-300">
+                    <div key={item.id} className="flex flex-col sm:flex-row items-center gap-2 transition-all duration-300" data-intro-id={index === 0 ? "step-4-assign-manual" : undefined}>
                         <Input
                             placeholder="Nama Item"
                             value={item.name}
@@ -593,7 +631,7 @@ export default function BillSplitter() {
 
       <div className="lg:col-span-1">
         <div className="sticky top-24 space-y-8">
-            <Card>
+            <Card data-intro-id="step-5-summary">
                 <CardHeader>
                     <CardTitle>Ringkasan</CardTitle>
                     <CardDescription>Rincian akhir dari pembagian tagihan.</CardDescription>
@@ -610,7 +648,7 @@ export default function BillSplitter() {
                             className="pr-8"
                             id="tax"
                             type="number"
-                            placeholder="Contoh : 11%"
+                            placeholder="Contoh : 11"
                             value={taxPercent || ""}
                             onChange={(e) => setTaxPercent(parseFloat(e.target.value) || 0)}
                             min="0"
@@ -705,8 +743,8 @@ export default function BillSplitter() {
                     </div>
                 </CardContent>
                 <CardFooter className="flex-col gap-2">
-                    <Button onClick={() => setShowSummaryModal(true)} className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={people.length === 0 || items.length === 0}>
-                        Lihat Ringkasan Pembagian
+                    <Button onClick={() => setShowSummaryModal(true)} className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={people.length === 0 || items.length === 0} data-intro-id="step-6-finalize">
+                        Lihat Detail Pembagian
                     </Button>
                 </CardFooter>
             </Card>

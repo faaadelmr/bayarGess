@@ -5,7 +5,7 @@ import { Logo } from '@/components/logo';
 import logof from '../../public/breathing.png';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { FileText, LifeBuoy } from 'lucide-react';
+import { FileText, LifeBuoy, HelpCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -20,15 +20,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import 'intro.js/introjs.css';
 
 export default function Home() {
   const [reportName, setReportName] = useState('');
   const [reportProblem, setReportProblem] = useState('');
   const [generatedReport, setGeneratedReport] = useState('');
+  const [receiptDataUriForReport, setReceiptDataUriForReport] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [typedText, setTypedText] = useState('#Coba');
   const words = ['AjaDulu', 'Lagi', 'AjaDulu', 'Mulai', 'AjaDulu', 'Berani', 'AjaDulu', 'Gagal', 'AjaDulu', 'Kawan'];
+
+  const [tourEnabled, setTourEnabled] = useState(false);
 
   useEffect(() => {
     let wordIndex = 0;
@@ -68,7 +72,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-8">
+      <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4 md:px-8">
         <div className="flex items-center gap-2">
         <a href="https://bayargess.vercel.app" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 no-underline text-foreground">
           <Logo />
@@ -77,9 +81,17 @@ export default function Home() {
           </h1>
         </a>
         </div>
+        <div className="flex items-center gap-2">
+           <Button variant="outline" size="sm" onClick={() => setTourEnabled(true)}>
+           Tutorial<HelpCircle className="h-4 w-4" />
+           </Button>
+        </div>
       </header>
       <main className="flex-1 p-4 md:p-8">
-        <BillSplitter />
+        <BillSplitter 
+          tourEnabled={tourEnabled}
+          onTourExit={() => setTourEnabled(false)}
+        />
       </main>
       <footer className="flex items-center justify-center p-4 border-t">
             <div className="container mx-auto px-4">
