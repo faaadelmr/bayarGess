@@ -454,6 +454,33 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8" data-intro-id="step-2-participants-card">
           <Card>
+              <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                      <ClipboardSignature className="text-primary" />
+                      AI Peserta:Item
+                  </CardTitle>
+                  <CardDescription>
+                      Form ini akan membuat daftar nama peserta dari teks, lalu membagi mereka ke item pesanan yang tersedia secara otomatis. <br />
+                     <span className="text-xs text-gray-500"> NP: </span><span className="text-xs italic text-gray-500"> Pastikan penulisan item pada form anda sama dengan daftar item tagihan yang telah dibuat. Dan cek kembali pembagian itemnya apakah sudah sesuai.</span>
+                  </CardDescription>
+              </CardHeader>
+              <CardContent>
+                  <Textarea
+                      placeholder={`Contoh:\n1. Budi: Nasi Goreng, Es Teh\n2. Ani: Mie Ayam`}
+                      value={assignmentText}
+                      onChange={(e) => setAssignmentText(e.target.value)}
+                      rows={6}
+                      disabled={isAnalyzingText}
+                  />
+              </CardContent>
+              <CardFooter>
+                  <Button onClick={handleAnalyzeText} disabled={isAnalyzingText} className="w-full">
+                      {isAnalyzingText ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                      Analisis Teks
+                  </Button>
+              </CardFooter>
+          </Card>
+          <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                 <Users className="text-primary" />
@@ -492,33 +519,6 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
             </CardFooter>
           </Card>
 
-          <Card>
-              <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                      <ClipboardSignature className="text-primary" />
-                      AI Peserta:Item
-                  </CardTitle>
-                  <CardDescription>
-                      Form ini akan membuat daftar nama peserta dari teks, lalu membagi mereka ke item pesanan yang tersedia secara otomatis. <br />
-                     <span className="text-xs text-gray-500"> NP: </span><span className="text-xs italic text-gray-500"> Pastikan penulisan item pada form anda sama dengan daftar item tagihan yang telah dibuat. Dan cek kembali pembagian itemnya apakah sudah sesuai.</span>
-                  </CardDescription>
-              </CardHeader>
-              <CardContent>
-                  <Textarea
-                      placeholder={`Contoh:\n1. Budi: Nasi Goreng, Es Teh\n2. Ani: Mie Ayam`}
-                      value={assignmentText}
-                      onChange={(e) => setAssignmentText(e.target.value)}
-                      rows={6}
-                      disabled={isAnalyzingText}
-                  />
-              </CardContent>
-              <CardFooter>
-                  <Button onClick={handleAnalyzeText} disabled={isAnalyzingText} className="w-full">
-                      {isAnalyzingText ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                      Analisis Teks
-                  </Button>
-              </CardFooter>
-          </Card>
         </div>
 
         <Card data-intro-id="step-1-upload">
@@ -845,3 +845,5 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
     </div>
   );
 }
+
+    
