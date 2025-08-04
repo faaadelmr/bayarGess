@@ -260,10 +260,7 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
       toast({ variant: "destructive", title: "Teks Kosong", description: "Harap masukkan teks untuk dianalisis." });
       return;
     }
-     if (items.length === 0) {
-      toast({ variant: "destructive", title: "Tidak Ada Item", description: "Harap unggah struk atau tambahkan item terlebih dahulu." });
-      return;
-    }
+    
     setIsAnalyzingText(true);
     try {
         const { people: extractedPeople, assignments } = await analyzeTextForSplits({ prompt: assignmentText });
@@ -445,7 +442,7 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
                 doneLabel: 'Selesai',
                 nextLabel: 'Lanjut',
                 prevLabel: 'Kembali',
-                skipLabel: 'Lewati',
+                skipLabel: 'x',
                 tooltipClass: 'custom-tooltip-class',
             }}
         />
@@ -453,34 +450,7 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
       <div className="lg:col-span-2 space-y-8">
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8" data-intro-id="step-2-participants-card">
-          <Card>
-              <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                      <ClipboardSignature className="text-primary" />
-                      AI Peserta:Item
-                  </CardTitle>
-                  <CardDescription>
-                      Form ini akan membuat daftar nama peserta dari teks, lalu membagi mereka ke item pesanan yang tersedia secara otomatis. <br />
-                     <span className="text-xs text-gray-500"> NP: </span><span className="text-xs italic text-gray-500"> Pastikan penulisan item pada form anda sama dengan daftar item tagihan yang telah dibuat. Dan cek kembali pembagian itemnya apakah sudah sesuai.</span>
-                  </CardDescription>
-              </CardHeader>
-              <CardContent>
-                  <Textarea
-                      placeholder={`Contoh:\n1. Budi: Nasi Goreng, Es Teh\n2. Ani: Mie Ayam`}
-                      value={assignmentText}
-                      onChange={(e) => setAssignmentText(e.target.value)}
-                      rows={6}
-                      disabled={isAnalyzingText}
-                  />
-              </CardContent>
-              <CardFooter>
-                  <Button onClick={handleAnalyzeText} disabled={isAnalyzingText} className="w-full">
-                      {isAnalyzingText ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                      Analisis Teks
-                  </Button>
-              </CardFooter>
-          </Card>
-          <Card>
+        <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                 <Users className="text-primary" />
@@ -518,7 +488,33 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
                 </Button>
             </CardFooter>
           </Card>
-
+          <Card>
+              <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                      <ClipboardSignature className="text-primary" />
+                      AI Peserta:Item
+                  </CardTitle>
+                  <CardDescription>
+                      Form ini akan membuat daftar nama peserta dari teks, lalu membagi mereka ke item pesanan yang tersedia secara otomatis. <br />
+                     <span className="text-xs text-gray-500"> NP: </span><span className="text-xs italic text-gray-500"> Pastikan penulisan item pada form anda sama dengan daftar item tagihan yang telah dibuat. Dan cek kembali pembagian itemnya apakah sudah sesuai.</span>
+                  </CardDescription>
+              </CardHeader>
+              <CardContent>
+                  <Textarea
+                      placeholder={`Contoh:\n1. Budi: Nasi Goreng, Es Teh\n2. Ani: Mie Ayam`}
+                      value={assignmentText}
+                      onChange={(e) => setAssignmentText(e.target.value)}
+                      rows={6}
+                      disabled={isAnalyzingText}
+                  />
+              </CardContent>
+              <CardFooter>
+                  <Button onClick={handleAnalyzeText} disabled={isAnalyzingText} className="w-full">
+                      {isAnalyzingText ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                      Analisis Teks
+                  </Button>
+              </CardFooter>
+          </Card>
         </div>
 
         <Card data-intro-id="step-1-upload">
@@ -562,16 +558,16 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
                     </div>
                 )}
                 {items.map((item, index) => (
-                    <div key={item.id} className="flex flex-col sm:flex-row items-center gap-2 transition-all duration-300" data-intro-id={index === 0 ? "step-4-assign-manual" : undefined}>
+                    <div key={item.id} className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_120px_1fr_auto] items-center gap-2 transition-all duration-300" data-intro-id={index === 0 ? "step-4-assign-manual" : undefined}>
                         <Input
                             placeholder="Nama Item"
                             value={item.name}
                             onChange={(e) =>
                             handleUpdateItem(item.id, "name", e.target.value)
                             }
-                            className="flex-grow"
+                            className="sm:col-span-1"
                         />
-                       <div className="relative w-full sm:w-40">
+                       <div className="relative">
                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">Rp</span>
                         <Input
                             type="text" 
@@ -589,7 +585,7 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
                         </div>
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant="outline" className="w-full sm:w-auto justify-start text-left font-normal" disabled={people.length === 0}>
+                                <Button variant="outline" className="w-full justify-start text-left font-normal" disabled={people.length === 0}>
                                     <span className="truncate flex-1">
                                     {item.consumers.length === 0
                                         ? "Bagi rata untuk semua"
@@ -845,5 +841,7 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
     </div>
   );
 }
+
+    
 
     
