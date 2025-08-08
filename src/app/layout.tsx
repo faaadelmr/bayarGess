@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     title: 'BayarGess | AI Splitbill Cerdas & Mudah',
     description: 'Bagi tagihan makan jadi gampang! Upload struk, BayarGess akan hitung secara otomatis dan adil pakai AI. Coba sekarang!',
     url: 'https://bayargess.vercel.app',
-    siteName: 'BayarGess',
+    siteName: 'Splitbill AI | BayarGess',
     images: [
       {
         url: 'https://bayargess.vercel.app/og-image.png',
