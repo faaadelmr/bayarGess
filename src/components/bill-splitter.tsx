@@ -559,66 +559,71 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
                     </div>
                 )}
                 {items.map((item, index) => (
-                    <div key={item.id} className="grid grid-cols-[1fr_auto_auto] sm:grid-cols-[1fr_120px_1fr_auto] items-center gap-2 transition-all duration-300" data-intro-id={index === 0 ? "step-4-assign-manual" : undefined}>
-                        <Input
-                            placeholder="Nama Item"
-                            value={item.name}
-                            onChange={(e) =>
-                            handleUpdateItem(item.id, "name", e.target.value)
-                            }
-                            className="sm:col-span-1"
-                        />
-                       <div className="relative">
-                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">Rp</span>
-                        <Input
-                            type="text" 
-                            placeholder="Harga"
-                            value={(item.price || 0).toLocaleString('id-ID')}
-                            onChange={(e) =>
-                            handleUpdateItem(
-                                item.id,
-                                "price",
-                                    parseFloat(e.target.value.replace(/\D/g, '')) || 0
-                            )
-                            }
-                            className="w-full pl-8 text-right"
-                        />
+                    <div key={item.id} className="grid grid-cols-1 sm:grid-cols-[1fr_120px_1fr_auto] gap-2 sm:items-center" data-intro-id={index === 0 ? "step-4-assign-manual" : undefined}>
+                        {/* Mobile: 2x2 grid, Desktop: 1x4 grid */}
+                        <div className="grid grid-cols-2 sm:col-span-1 sm:grid-cols-1 gap-2">
+                            <Input
+                                placeholder="Nama Item"
+                                value={item.name}
+                                onChange={(e) =>
+                                handleUpdateItem(item.id, "name", e.target.value)
+                                }
+                            />
+                           <div className="relative">
+                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">Rp</span>
+                            <Input
+                                type="text" 
+                                placeholder="Harga"
+                                value={(item.price || 0).toLocaleString('id-ID')}
+                                onChange={(e) =>
+                                handleUpdateItem(
+                                    item.id,
+                                    "price",
+                                        parseFloat(e.target.value.replace(/\D/g, '')) || 0
+                                )
+                                }
+                                className="w-full pl-8 text-right"
+                            />
+                            </div>
                         </div>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className="w-full justify-start text-left font-normal" disabled={people.length === 0}>
-                                    <span className="truncate flex-1">
-                                    {item.consumers.length === 0
-                                        ? "Bagi rata untuk semua"
-                                        : item.consumers.length === 1
-                                        ? item.consumers[0]
-                                        : `${item.consumers.length} orang`}
-                                    </span>
-                                    <ChevronDown className="ml-2 h-4 w-4 text-muted-foreground" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-56 p-2">
-                                <div className="space-y-2">
-                                    {people.map(p => (
-                                        <Label key={p} className="flex items-center space-x-2 font-normal p-2 hover:bg-muted rounded-md cursor-pointer">
-                                            <Checkbox 
-                                                checked={item.consumers.includes(p)}
-                                                onCheckedChange={() => handleToggleConsumer(item.id, p)}
-                                            />
-                                            <span>{p}</span>
-                                        </Label>
-                                    ))}
-                                </div>
-                            </PopoverContent>
-                        </Popover>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteItem(item.id)}
-                            aria-label="Hapus item"
-                        >
-                            <Trash2 className="h-4 w-4 text-muted-foreground" />
-                        </Button>
+
+                        <div className="grid grid-cols-[1fr_auto] sm:col-span-3 sm:grid-cols-subgrid gap-2 items-center">
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" className="w-full justify-start text-left font-normal" disabled={people.length === 0}>
+                                        <span className="truncate flex-1">
+                                        {item.consumers.length === 0
+                                            ? "Bagi rata untuk semua"
+                                            : item.consumers.length === 1
+                                            ? item.consumers[0]
+                                            : `${item.consumers.length} orang`}
+                                        </span>
+                                        <ChevronDown className="ml-2 h-4 w-4 text-muted-foreground" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-56 p-2">
+                                    <div className="space-y-2">
+                                        {people.map(p => (
+                                            <Label key={p} className="flex items-center space-x-2 font-normal p-2 hover:bg-muted rounded-md cursor-pointer">
+                                                <Checkbox 
+                                                    checked={item.consumers.includes(p)}
+                                                    onCheckedChange={() => handleToggleConsumer(item.id, p)}
+                                                />
+                                                <span>{p}</span>
+                                            </Label>
+                                        ))}
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteItem(item.id)}
+                                aria-label="Hapus item"
+                            >
+                                <Trash2 className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                        </div>
                     </div>
                 ))}
             </div>
