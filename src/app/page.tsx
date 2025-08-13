@@ -99,7 +99,7 @@ export default function Home() {
                     <div className="mb-2 sm:mb-0">
               <p className="text-xs text-base-content/80">
                 &copy; {new Date().getFullYear()}{" "}
-                <span className="font-medium text-red-600">bayarGess</span>. All rights
+                <span className="font-medium text-primary">bayarGess</span>. All rights
                 reserved.<span className="animated-highlight-text text-black">{typedText}</span>
                         </p>
                         
@@ -112,7 +112,7 @@ export default function Home() {
                     alt="logo craft"
                   />
                 </div> 
-              <a href="https://github.com/faaadelmr" className="text-red-500 hover:text-red-600 transition-colors duration-300">
+              <a href="https://github.com/faaadelmr" className="text-primary hover:text-primary/80 transition-colors duration-300">
                 faaadelmr
               </a>
                 </div>
