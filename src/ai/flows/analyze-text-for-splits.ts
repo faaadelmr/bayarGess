@@ -42,30 +42,33 @@ const prompt = ai.definePrompt({
 You will be given a block of text that lists people and the food or drink items they ordered. Your task is to extract a list of all unique people and then, for each person, list the items they ordered.
 
 Follow these rules:
-1.  **Identify the Person**: The person's name is usually at the start of the line, often followed by a colon (:) or a number. Extract only the name.
-2.  **Identify the Items**: The items are listed after the person's name. They are typically separated by commas (,).
-3.  **Handle Compound Items**: If an item description contains a plus sign (+) or similar separator, you MUST split it into separate, individual items. For example, "ricebowl black pepper + es DJ" MUST be parsed as two items: "ricebowl black pepper" and "es DJ". Similarly, "Mie Goyang LVL 1 + Wizz Egg" MUST be parsed as "Mie Goyang LVL 1" and "Wizz Egg", "es DJ" MUST be parsed as "ice DJ".
-4.  **Handle Variations**: Sometimes there are notes with items (e.g., "Mie Goyang LVL 1 (Cabe 5)"). Treat the main part ("Mie Goyang LVL 1") as the item name and ignore the parenthetical note. The goal is to match item names flexibly.
-5.  **Cleaning**: Trim any extra whitespace from names and items.
-6.  **Output Structure**:
-    - The 'people' field must be an array of unique names.
-    - The 'assignments' field must be an array of objects, where each object contains a person's name and an array of the item names they ordered.
+1. Identify People and Items: Each line typically starts with a person's name, followed by a colon or a number. The items they ordered are listed after their name, usually separated by commas.
+2. Normalize Item Names:
+  -Split Compound Items: If an item name contains a +, you must split it into separate items. For example, "ricebowl black pepper + es DJ" becomes "ricebowl black pepper" and "es DJ".
+  -Clean Variations: Ignore notes within parentheses, like (cabe 5). The item "Mie Goyang LVL 1 (Cabe 5)" should be treated as "Mie Goyang LVL 1".
+  -Standardize Spelling: Normalize common abbreviations and alternate spellings. For example, "es DJ" becomes "Ice DJ" and "LVL1" becomes "LVL 1". Minor spelling differences, like "LVL" versus "LV", should be considered the same item.
+3. Clean Output: Trim any extra whitespace from names and items.
+4. Format the Output: The final output must be a JSON object with two fields:
+5. people: An array of all unique person names.
+6. assignments: An array of objects. Each object should have a person field and an items field (an array of the items they ordered).
 
-**Example Input:**
+Example
+Input:
 1. Edo : Mie Goyang LVL1, Ice DJ
 2. Firman : Mie Goyang LVL 2, Green Tea, Udang Keju
 3. Fadel : Mie Goyang LVL 2, Udang Keju
 4. Dwi : ricebowl black pepper + es DJ
 5. Winda : Mie Goyang LVL 1 + Wizz Egg, Ceker, Lemon Splash Jumbo
+Output:
 
-**Correct Example Output:**
+JSON
 {
   "people": ["Edo", "Firman", "Fadel", "Dwi", "Winda"],
   "assignments": [
-    { "person": "Edo", "items": ["Mie Goyang LVL1", "Ice DJ"] },
-    { "person": "Firman", "items": ["Mie Goyang LVL 2", "Green Tea", "Udang Keju"] },
-    { "person": "Fadel", "items": ["Mie Goyang LVL 2", "Udang Keju"] },
-    { "person": "Dwi", "items": ["ricebowl black pepper", "es DJ"] },
+    { "person": "Edo", "items": ["Mie Goyang LV1", "Ice DJ"] },
+    { "person": "Firman", "items": ["Mie Goyang LV2", "Green Tea", "Udang Keju"] },
+    { "person": "Fadel", "items": ["Mie Goyang LVL 2 (cabae 10)", "Udang Keju"] },
+    { "person": "Dwi", "items": ["ricebowl black pepper", "Ice DJ"] },
     { "person": "Winda", "items": ["Mie Goyang LVL 1", "Wizz Egg", "Ceker", "Lemon Splash Jumbo"] }
   ]
 }
