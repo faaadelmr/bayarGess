@@ -15,6 +15,7 @@ import {
   ClipboardSignature,
   X,
   FileText,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +54,7 @@ import { toJpeg } from 'html-to-image';
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Steps } from "intro.js-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Item = {
   id: string;
@@ -63,6 +65,7 @@ type Item = {
 
 type Person = string;
 type DiscountType = 'fixed' | 'percentage';
+type TaxServiceOrder = 'combined' | 'tax_first' | 'service_first';
 
 interface BillSplitterProps {
     tourEnabled: boolean;
@@ -72,7 +75,7 @@ interface BillSplitterProps {
 // Helper function for fuzzy matching item names
 const normalizeItemName = (name: string) => {
     // Converts to lowercase, removes content in parentheses, and removes non-alphanumeric characters
-    return name.toLowerCase().replace(/\(.*?\)/g, '').replace(/[^a-z0-9]/g, '').trim();
+    return name.toLowerCase().replace(/\(.*?\)/g, '').replace(/[^a-z0-9\s]/g, '').trim();
 };
 
 
@@ -80,6 +83,7 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
   const [people, setPeople] = useState<Person[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [taxPercent, setTaxPercent] = useState(0);
+  const [serviceChargePercent, setServiceChargePercent] = useState(0);
   const [additionalCharges, setAdditionalCharges] = useState(0);
   const [shippingCost, setShippingCost] = useState(0);
   const [newPersonName, setNewPersonName] = useState("");
@@ -89,6 +93,10 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
   const [discountType, setDiscountType] = useState<DiscountType>('fixed');
   const [discountValue, setDiscountValue] = useState(0);
   const [maxDiscount, setMaxDiscount] = useState(0);
+  
+  const [applyDiscountBeforeTaxService, setApplyDiscountBeforeTaxService] = useState(false);
+  const [taxServiceOrder, setTaxServiceOrder] = useState<TaxServiceOrder>('combined');
+
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isAnalyzingText, setIsAnalyzingText] = useState(false);
@@ -209,7 +217,7 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
         const base64 = reader.result as string;
         setReceiptDataUri(base64); // Save for reporting
         try {
-            const { items: extractedItems, tax, additionalCharges: extractedCharges, shippingCost: extractedShipping, discountValue: extractedDiscount } = await analyzeReceiptImage({ receiptDataUri: base64 });
+            const { items: extractedItems, tax, serviceCharge, additionalCharges: extractedCharges, shippingCost: extractedShipping, discountValue: extractedDiscount } = await analyzeReceiptImage({ receiptDataUri: base64 });
             const newItems: Item[] = extractedItems.map(item => ({...item, id: crypto.randomUUID(), consumers: [] }));
             setItems(prev => [...prev, ...newItems]);
             
@@ -217,6 +225,10 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
             if (tax) {
                 setTaxPercent(tax);
                 toastDescription += ` Pajak (${tax}%) terdeteksi.`;
+            }
+            if (serviceCharge) {
+                setServiceChargePercent(serviceCharge);
+                toastDescription += ` Service charge (${serviceCharge}%) terdeteksi.`;
             }
             if (extractedCharges) {
                 setAdditionalCharges(extractedCharges);
@@ -350,69 +362,129 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
     }
   };
 
-
   const totals = useMemo(() => {
     const subtotal = items.reduce((acc, item) => acc + Number(item.price || 0), 0);
-    
+
     let totalDiscountAmount = 0;
     if (discountType === 'fixed') {
         totalDiscountAmount = Number(discountValue) || 0;
     } else {
-        const calculatedDiscount = subtotal * (Number(discountValue) || 0) / 100;
+        let discountBase = subtotal;
+        if (!applyDiscountBeforeTaxService) {
+             let serviceAmount = 0;
+            let taxAmount = 0;
+            if (taxServiceOrder === 'combined') {
+                serviceAmount = discountBase * (serviceChargePercent / 100);
+                taxAmount = discountBase * (taxPercent / 100);
+            } else if (taxServiceOrder === 'service_first') {
+                serviceAmount = discountBase * (serviceChargePercent / 100);
+                taxAmount = (discountBase + serviceAmount) * (taxPercent / 100);
+            } else { // tax_first
+                taxAmount = discountBase * (taxPercent / 100);
+                serviceAmount = (discountBase + taxAmount) * (serviceChargePercent / 100);
+            }
+            discountBase += serviceAmount + taxAmount;
+        }
+
+        const calculatedDiscount = discountBase * (Number(discountValue) || 0) / 100;
         const max = Number(maxDiscount) || 0;
         totalDiscountAmount = max > 0 ? Math.min(calculatedDiscount, max) : calculatedDiscount;
     }
-
-    const totalTaxAmount = subtotal * (Number(taxPercent) || 0) / 100;
-    
-    const totalAdditionalCosts = (Number(additionalCharges) || 0) + (Number(shippingCost) || 0);
-    const personShareOfOtherCosts = people.length > 0 ? totalAdditionalCosts / people.length : 0;
 
     const personSubtotals: Record<Person, number> = {};
     people.forEach((person) => (personSubtotals[person] = 0));
 
     items.forEach((item) => {
-      const price = Number(item.price || 0);
-      const consumers = item.consumers.length > 0 ? item.consumers : people;
-      if (consumers.length === 0) return;
-      const share = price / consumers.length;
-      consumers.forEach((person) => {
-        if (personSubtotals[person] !== undefined) {
-          personSubtotals[person] += share;
-        }
-      });
+        const price = Number(item.price || 0);
+        const consumers = item.consumers.length > 0 ? item.consumers : people;
+        if (consumers.length === 0) return;
+        const share = price / consumers.length;
+        consumers.forEach((person) => {
+            if (personSubtotals[person] !== undefined) {
+                personSubtotals[person] += share;
+            }
+        });
     });
 
-    const individualTotals: Record<Person, number> = {};
+    const personTotals: Record<Person, number> = {};
     const personTaxes: Record<Person, number> = {};
+    const personServiceCharges: Record<Person, number> = {};
     const personDiscounts: Record<Person, number> = {};
+    
+    people.forEach(p => {
+        personTotals[p] = personSubtotals[p] || 0;
+        personTaxes[p] = 0;
+        personServiceCharges[p] = 0;
+        personDiscounts[p] = 0;
+    });
 
-    people.forEach((person) => {
-        const pSubtotal = personSubtotals[person] || 0;
-        const proportion = subtotal > 0 ? pSubtotal / subtotal : (people.length > 0 ? 1 / people.length : 0);
+    // Distribute discount proportionally
+    if (subtotal > 0) {
+        people.forEach(p => {
+            const proportion = personSubtotals[p] / subtotal;
+            personDiscounts[p] = totalDiscountAmount * proportion;
+        });
+    }
 
-        const personTax = pSubtotal * (Number(taxPercent) || 0) / 100;
-        personTaxes[person] = personTax;
+    if (applyDiscountBeforeTaxService) {
+        people.forEach(p => {
+            personTotals[p] -= personDiscounts[p];
+        });
+    }
 
-        const personDiscount = totalDiscountAmount * proportion;
-        personDiscounts[person] = personDiscount;
+    // Calculate Tax and Service Charge for each person
+    people.forEach(p => {
+        let baseForTaxAndService = personTotals[p];
+        let pTax = 0;
+        let pService = 0;
 
-        individualTotals[person] = pSubtotal + personTax - personDiscount + personShareOfOtherCosts;
+        if (taxServiceOrder === 'combined') {
+            pTax = baseForTaxAndService * (taxPercent / 100);
+            pService = baseForTaxAndService * (serviceChargePercent / 100);
+        } else if (taxServiceOrder === 'service_first') {
+            pService = baseForTaxAndService * (serviceChargePercent / 100);
+            pTax = (baseForTaxAndService + pService) * (taxPercent / 100);
+        } else { // tax_first
+            pTax = baseForTaxAndService * (taxPercent / 100);
+            pService = (baseForTaxAndService + pTax) * (serviceChargePercent / 100);
+        }
+        personTaxes[p] = pTax;
+        personServiceCharges[p] = pService;
+        personTotals[p] += pTax + pService;
+    });
+
+    if (!applyDiscountBeforeTaxService) {
+        people.forEach(p => {
+            personTotals[p] -= personDiscounts[p];
+        });
+    }
+
+    const totalAdditionalCosts = (Number(additionalCharges) || 0) + (Number(shippingCost) || 0);
+    const personShareOfOtherCosts = people.length > 0 ? totalAdditionalCosts / people.length : 0;
+    
+    people.forEach(p => {
+        personTotals[p] += personShareOfOtherCosts;
     });
     
-    const grandTotal = Object.values(individualTotals).reduce((acc, total) => acc + total, 0);
+    const taxAmount = Object.values(personTaxes).reduce((a, b) => a + b, 0);
+    const serviceChargeAmount = Object.values(personServiceCharges).reduce((a, b) => a + b, 0);
+    const grandTotal = Object.values(personTotals).reduce((a, b) => a + b, 0);
+
 
     return { 
         subtotal, 
         grandTotal, 
-        individualTotals, 
-        taxAmount: totalTaxAmount, 
+        individualTotals: personTotals,
+        taxAmount, 
         discountAmount: totalDiscountAmount,
+        serviceChargeAmount,
         personShareOfOtherCosts,
         personTaxes,
         personDiscounts,
+        personServiceCharges,
     };
-  }, [items, people, taxPercent, additionalCharges, shippingCost, discountType, discountValue, maxDiscount]);
+}, [items, people, taxPercent, serviceChargePercent, additionalCharges, shippingCost, discountType, discountValue, maxDiscount, applyDiscountBeforeTaxService, taxServiceOrder]);
+
   
   const personItems = useMemo(() => {
     const personItemsMap: Record<Person, {name: string, price: number}[]> = {};
@@ -478,7 +550,7 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
                 </Button>
             </CardFooter>
         </Card>
-        <Card>
+         <Card>
           <CardHeader>
               <CardTitle className="flex items-center gap-2">
               <Users className="text-primary" />
@@ -559,71 +631,60 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
                     </div>
                 )}
                 {items.map((item, index) => (
-                    <div key={item.id} className="grid grid-cols-1 sm:grid-cols-[1fr_120px_1fr_auto] gap-2 sm:items-center" data-intro-id={index === 0 ? "step-4-assign-manual" : undefined}>
-                        {/* Mobile: 2x2 grid, Desktop: 1x4 grid */}
-                        <div className="grid grid-cols-2 sm:col-span-1 sm:grid-cols-1 gap-2">
-                            <Input
-                                placeholder="Nama Item"
-                                value={item.name}
-                                onChange={(e) =>
-                                handleUpdateItem(item.id, "name", e.target.value)
-                                }
-                            />
-                           <div className="relative">
-                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">Rp</span>
+                    <div key={item.id} className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-2 items-center" data-intro-id={index === 0 ? "step-4-assign-manual" : undefined}>
+                        <Input
+                            placeholder="Nama Item"
+                            value={item.name}
+                            onChange={(e) => handleUpdateItem(item.id, "name", e.target.value)}
+                        />
+                        <div className="relative w-full md:w-32">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">Rp</span>
                             <Input
                                 type="text" 
                                 placeholder="Harga"
                                 value={(item.price || 0).toLocaleString('id-ID')}
-                                onChange={(e) =>
-                                handleUpdateItem(
-                                    item.id,
-                                    "price",
-                                        parseFloat(e.target.value.replace(/\D/g, '')) || 0
-                                )
-                                }
-                                className="w-full pl-8 text-right"
+                                onChange={(e) => handleUpdateItem(item.id, "price", parseFloat(e.target.value.replace(/\D/g, '')) || 0)}
+                                className="pl-8 text-right"
                             />
-                            </div>
                         </div>
 
-                        <div className="grid grid-cols-[1fr_auto] sm:col-span-3 sm:grid-cols-subgrid gap-2 items-center">
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" className="w-full justify-start text-left font-normal" disabled={people.length === 0}>
-                                        <span className="truncate flex-1">
-                                        {item.consumers.length === 0
-                                            ? "Bagi rata untuk semua"
-                                            : item.consumers.length === 1
-                                            ? item.consumers[0]
-                                            : `${item.consumers.length} orang`}
-                                        </span>
-                                        <ChevronDown className="ml-2 h-4 w-4 text-muted-foreground" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-56 p-2">
-                                    <div className="space-y-2">
-                                        {people.map(p => (
-                                            <Label key={p} className="flex items-center space-x-2 font-normal p-2 hover:bg-muted rounded-md cursor-pointer">
-                                                <Checkbox 
-                                                    checked={item.consumers.includes(p)}
-                                                    onCheckedChange={() => handleToggleConsumer(item.id, p)}
-                                                />
-                                                <span>{p}</span>
-                                            </Label>
-                                        ))}
-                                    </div>
-                                </PopoverContent>
-                            </Popover>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteItem(item.id)}
-                                aria-label="Hapus item"
-                            >
-                                <Trash2 className="h-4 w-4 text-muted-foreground" />
-                            </Button>
-                        </div>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-full md:w-40 justify-start text-left font-normal" disabled={people.length === 0}>
+                                    <span className="truncate flex-1">
+                                    {item.consumers.length === 0
+                                        ? "Bagi rata untuk semua"
+                                        : item.consumers.length === 1
+                                        ? item.consumers[0]
+                                        : `${item.consumers.length} orang`}
+                                    </span>
+                                    <ChevronDown className="ml-2 h-4 w-4 text-muted-foreground" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-56 p-2">
+                                <div className="space-y-2">
+                                    {people.map(p => (
+                                        <Label key={p} className="flex items-center space-x-2 font-normal p-2 hover:bg-muted rounded-md cursor-pointer">
+                                            <Checkbox 
+                                                checked={item.consumers.includes(p)}
+                                                onCheckedChange={() => handleToggleConsumer(item.id, p)}
+                                            />
+                                            <span>{p}</span>
+                                        </Label>
+                                    ))}
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteItem(item.id)}
+                            aria-label="Hapus item"
+                            className="justify-self-end"
+                        >
+                            <Trash2 className="h-4 w-4 text-muted-foreground" />
+                        </Button>
                     </div>
                 ))}
             </div>
@@ -645,19 +706,6 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="tax">Pajak (%)</Label>
-                        <Input
-                            className="pr-8"
-                            id="tax"
-                            type="number"
-                            placeholder="Contoh : 11"
-                            value={taxPercent || ""}
-                            onChange={(e) => setTaxPercent(parseFloat(e.target.value) || 0)}
-                            min="0"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
                         <Label>Diskon</Label>
                         <Tabs value={discountType} onValueChange={(value) => setDiscountType(value as DiscountType)} className="w-full">
                             <TabsList className="grid w-full grid-cols-2">
@@ -673,7 +721,7 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
                             min="0"
                         />
                         {discountType === 'percentage' && (
-                            <div className="space-y-2">
+                            <div className="space-y-2 mt-2">
                                 <Label htmlFor="max-discount">Maksimal Diskon (Rp)</Label>
                                 <Input
                                     id="max-discount"
@@ -685,8 +733,54 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
                                 />
                             </div>
                         )}
+                        <div className="flex items-center space-x-2 mt-2">
+                            <Checkbox id="discount-order" checked={applyDiscountBeforeTaxService} onCheckedChange={(checked) => setApplyDiscountBeforeTaxService(checked as boolean)} />
+                            <Label htmlFor="discount-order" className="text-sm font-normal text-muted-foreground">Terapkan diskon sebelum Pajak & Service</Label>
+                        </div>
                     </div>
                     
+                    <Separator/>
+
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="tax">Pajak (%)</Label>
+                            <Input
+                                id="tax"
+                                type="number"
+                                placeholder="misalnya 11"
+                                value={taxPercent || ""}
+                                onChange={(e) => setTaxPercent(parseFloat(e.target.value) || 0)}
+                                min="0"
+                            />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="service-charge">Service (%)</Label>
+                            <Input
+                                id="service-charge"
+                                type="number"
+                                placeholder="misalnya 5%"
+                                value={serviceChargePercent || ""}
+                                onChange={(e) => setServiceChargePercent(parseFloat(e.target.value) || 0)}
+                                min="0"
+                            />
+                        </div>
+                    </div>
+                    
+                     <div className="space-y-2">
+                        <Label>Urutan Hitung Pajak & Service</Label>
+                         <Select value={taxServiceOrder} onValueChange={(value) => setTaxServiceOrder(value as TaxServiceOrder)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Pilih urutan..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="combined">Pajak & Service digabung</SelectItem>
+                                <SelectItem value="service_first">Service dulu, baru Pajak</SelectItem>
+                                <SelectItem value="tax_first">Pajak dulu, baru Service</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+
                      <div className="space-y-2">
                         <Label htmlFor="additional-charges">Biaya Tambahan</Label>
                         <Input
@@ -712,13 +806,17 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
                     
                     <Separator />
 
-                     <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Pajak</span>
-                        <span>{totals.taxAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
-                    </div>
-                    <div className="flex justify-between text-sm text-green-600">
+                     <div className="flex justify-between text-sm text-green-600">
                         <span className="text-muted-foreground">Diskon</span>
                         <span>- {totals.discountAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Service ({serviceChargePercent}%)</span>
+                        <span>{totals.serviceChargeAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                    </div>
+                     <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Pajak ({taxPercent}%)</span>
+                        <span>{totals.taxAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Biaya lain-lain</span>
@@ -791,15 +889,6 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
                                     <span className="text-gray-800">{item.price.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
                                 </div>
                                 ))}
-                                {totals.personTaxes[person] > 0 && (
-                                     <>
-                                    <Separator className="my-1 bg-gray-200" />
-                                     <div className="flex justify-between">
-                                         <span className="text-gray-600">Pajak</span>
-                                         <span className="text-gray-800">{totals.personTaxes[person].toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
-                                     </div>
-                                     </>
-                                )}
                                 {totals.personDiscounts[person] > 0 && (
                                     <>
                                     <Separator className="my-1 bg-gray-200" />
@@ -808,6 +897,24 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
                                         <span className="text-green-600">- {totals.personDiscounts[person].toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
                                     </div>
                                     </>
+                                )}
+                                 {totals.personServiceCharges[person] > 0 && (
+                                     <>
+                                    <Separator className="my-1 bg-gray-200" />
+                                     <div className="flex justify-between">
+                                         <span className="text-gray-600">Service</span>
+                                         <span className="text-gray-800">{totals.personServiceCharges[person].toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                                     </div>
+                                     </>
+                                )}
+                                {totals.personTaxes[person] > 0 && (
+                                     <>
+                                    <Separator className="my-1 bg-gray-200" />
+                                     <div className="flex justify-between">
+                                         <span className="text-gray-600">Pajak</span>
+                                         <span className="text-gray-800">{totals.personTaxes[person].toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span>
+                                     </div>
+                                     </>
                                 )}
                                 {(additionalCharges > 0 || shippingCost > 0) && (
                                     <>
@@ -826,8 +933,9 @@ export default function BillSplitter({ tourEnabled, onTourExit }: BillSplitterPr
                     <Separator className="bg-gray-300"/>
                     <div className="text-xs text-gray-500 pt-2 space-y-1">
                         <div className="flex justify-between"><span>Subtotal:</span> <span>{totals.subtotal.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>
-                        <div className="flex justify-between"><span>Pajak ({taxPercent}%):</span> <span>{totals.taxAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>
-                        {discountValue > 0 && <div className="flex justify-between"><span>Diskon:</span> <span>-{totals.discountAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>}
+                        {discountValue > 0 && <div className="flex justify-between text-green-600"><span>Diskon:</span> <span>-{totals.discountAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>}
+                        {serviceChargePercent > 0 && <div className="flex justify-between"><span>Service ({serviceChargePercent}%):</span> <span>{totals.serviceChargeAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>}
+                        {taxPercent > 0 && <div className="flex justify-between"><span>Pajak ({taxPercent}%):</span> <span>{totals.taxAmount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>}
                         {additionalCharges > 0 && <div className="flex justify-between"><span>Biaya Tambahan:</span> <span>{Number(additionalCharges).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>}
                         {shippingCost > 0 && <div className="flex justify-between"><span>Ongkos Kirim:</span> <span>{Number(shippingCost).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}</span></div>}
                     </div>

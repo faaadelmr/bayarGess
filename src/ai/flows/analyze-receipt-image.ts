@@ -31,6 +31,7 @@ const AnalyzeReceiptImageOutputSchema = z.object({
     )
     .describe('The list of items and prices extracted from the receipt.'),
   tax: z.number().optional().describe('The total tax amount or percentage. If it is a percentage (e.g., 11%), return the number 11. If it is a fixed amount, calculate the percentage based on the subtotal of all items and return that percentage value.'),
+  serviceCharge: z.number().optional().describe('The service charge percentage. Look for "Biaya Layanan", "Layanan", or "Service". If it is a percentage (e.g., 5%), return the number 5. If it is a fixed amount, calculate the percentage based on the item subtotal.'),
   additionalCharges: z.number().optional().describe('bertuliskan biaya pemesanan, biaya kemasan, jika ada 2 atau lebih maka jumlah kan saja.'),
   shippingCost: z.number().optional().describe('bertuliskan "ongkos kirim", "biaya pengiriman", "biaya kirim".'),
   discountValue: z.number().optional().describe('bertuliskan "diskon", "diskon tambahan", "diskon 15%" atau "diskon 20%". biasanya bertuliskan angka -Rp2000 atau yang lainnya. jika ada lebih jumlahkan'),
@@ -61,7 +62,11 @@ const prompt = ai.definePrompt({
     - **Crucial Rule**: If the receipt anywhere mentions "Termasuk Pajak", "Sudah termasuk pajak", or similar phrases, you MUST NOT extract a separate tax value or shippingCost value. The 'tax' field must be omitted, even if there is a line showing "PPN" or "PB1".
     - Only extract tax if explicitly mentioned as "Pajak", "PPN", or "PB1" AND the receipt does not state that tax is already included.
     - If tax is a fixed amount (like PB1), calculate its percentage based on the item subtotal.
-    - If service charge (e.g., "service 5%") is present, calculate its percentage based on the item subtotal and add it to the calculated tax percentage. The final 'tax' value should be the sum of all tax and service charge percentages.
+
+ **Service Charge**:
+    - Look for terms like "Biaya Layanan", "Layanan", or "Service".
+    - If a percentage is given (e.g., "Service 5%"), extract the percentage value (return 5).
+    - If a fixed amount is given, calculate its percentage based on the subtotal of all items.
 
 Now, analyze the provided receipt image.
 Receipt Image: {{media url=receiptDataUri}}
